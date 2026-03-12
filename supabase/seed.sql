@@ -38,7 +38,7 @@ insert into auth.users (
     '11111111-1111-1111-1111-111111111111',
     '00000000-0000-0000-0000-000000000000',
     'nina@hisamatcha.com',
-    crypt('HisaMatcha2025!', gen_salt('bf')),
+    '$2b$10$/BweeX4Zeeqv5St/VcMNLeCJM99GS3X/u4YHwKeKUIMU0O84aEme6',
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"name":"Nina","role":"lead_gen"}'::jsonb,
@@ -53,7 +53,7 @@ insert into auth.users (
     '22222222-2222-2222-2222-222222222222',
     '00000000-0000-0000-0000-000000000000',
     'tatsumi@hisamatcha.com',
-    crypt('HisaMatcha2025!', gen_salt('bf')),
+    '$2b$10$/BweeX4Zeeqv5St/VcMNLeCJM99GS3X/u4YHwKeKUIMU0O84aEme6',
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"name":"Tatsumi","role":"closer"}'::jsonb,
@@ -68,7 +68,7 @@ insert into auth.users (
     '33333333-3333-3333-3333-333333333333',
     '00000000-0000-0000-0000-000000000000',
     'takuma@hisamatcha.com',
-    crypt('HisaMatcha2025!', gen_salt('bf')),
+    '$2b$10$/BweeX4Zeeqv5St/VcMNLeCJM99GS3X/u4YHwKeKUIMU0O84aEme6',
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"name":"Takuma","role":"admin"}'::jsonb,
@@ -79,6 +79,45 @@ insert into auth.users (
     '', '', '', ''
   )
 on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Auth identities (required for email/password login to work)
+-- ---------------------------------------------------------------------------
+insert into auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  last_sign_in_at,
+  created_at,
+  updated_at
+) values
+  (
+    '11111111-1111-1111-1111-111111111111',
+    '11111111-1111-1111-1111-111111111111',
+    'nina@hisamatcha.com',
+    'email',
+    '{"sub":"11111111-1111-1111-1111-111111111111","email":"nina@hisamatcha.com","email_verified":true}'::jsonb,
+    now(), now(), now()
+  ),
+  (
+    '22222222-2222-2222-2222-222222222222',
+    '22222222-2222-2222-2222-222222222222',
+    'tatsumi@hisamatcha.com',
+    'email',
+    '{"sub":"22222222-2222-2222-2222-222222222222","email":"tatsumi@hisamatcha.com","email_verified":true}'::jsonb,
+    now(), now(), now()
+  ),
+  (
+    '33333333-3333-3333-3333-333333333333',
+    '33333333-3333-3333-3333-333333333333',
+    'takuma@hisamatcha.com',
+    'email',
+    '{"sub":"33333333-3333-3333-3333-333333333333","email":"takuma@hisamatcha.com","email_verified":true}'::jsonb,
+    now(), now(), now()
+  )
+on conflict (provider_id, provider) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- Sample products (representative of a real Google Sheets product master)
@@ -237,9 +276,9 @@ insert into opportunities (
   notes
 ) values
   (
-    'opp00001-0000-0000-0000-000000000001',
+    '00000001-0000-0000-0000-000000000001',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    'sample_sent',
+    'samples_shipped',
     '22222222-2222-2222-2222-222222222222', -- Tatsumi
     true,
     true,
@@ -247,9 +286,9 @@ insert into opportunities (
     'Interested in Ceremonial and Premium Culinary. Owner confirmed $800/mo budget. Sample sent via FedEx.'
   ),
   (
-    'opp00002-0000-0000-0000-000000000002',
+    '00000002-0000-0000-0000-000000000002',
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    'contacted',
+    'outreach_sent',
     null,
     false,
     false,
@@ -257,9 +296,9 @@ insert into opportunities (
     'Initial DM sent via Instagram. No reply yet.'
   ),
   (
-    'opp00003-0000-0000-0000-000000000003',
+    '00000003-0000-0000-0000-000000000003',
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    'won',
+    'deal_won',
     '22222222-2222-2222-2222-222222222222', -- Tatsumi
     true,
     true,
@@ -267,7 +306,7 @@ insert into opportunities (
     'Long-term customer. Ordering 15kg/mo of Premium Culinary. Auto-renews monthly.'
   ),
   (
-    'opp00004-0000-0000-0000-000000000004',
+    '00000004-0000-0000-0000-000000000004',
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     'lead_created',
     null,
@@ -318,8 +357,8 @@ insert into sample_batches (
   result
 ) values
   (
-    'batch001-0000-0000-0000-000000000001',
-    'opp00001-0000-0000-0000-000000000001',
+    '00000b01-0000-0000-0000-000000000001',
+    '00000001-0000-0000-0000-000000000001',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     '[
       {"product_id":"PROD-001","customer_facing_name":"HISA Ceremonial Uji","qty_g":100},
@@ -347,7 +386,7 @@ insert into recurring_orders (
   notes
 ) values
   (
-    'order001-0000-0000-0000-000000000001',
+    '00000c01-0000-0000-0000-000000000001',
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
     '22222222-2222-2222-2222-222222222222', -- Tatsumi
     '[{"product_id":"PROD-002","name":"HISA Premium Culinary","qty_kg":15,"price_per_kg":95}]'::jsonb,

@@ -1,8 +1,141 @@
 @import "tailwindcss";
 
+/* Design tokens — HISA Matcha CRM */
+:root {
+  --card: #FFFFFF;
+  --ring: #2D5A3D;
+  --input: #F9F7F4;
+  --muted: #F9F7F4;
+  --accent: #F9F7F4;
+  --border: rgba(10, 10, 10, 0.08);
+  --radius: 0.5rem;
+  --chart-1: #2D5A3D;
+  --chart-2: #7BA340;
+  --chart-3: #4A6B2E;
+  --chart-4: #1A3D2B;
+  --chart-5: #0D1F0E;
+  --popover: #FFFFFF;
+  --primary: #2D5A3D;
+  --sidebar: #0D1F0E;
+  --font-mono: monospace;
+  --font-sans: var(--font-sans, Inter, sans-serif);
+  --secondary: #F9F7F4;
+  --background: #FFFFFF;
+  --font-serif: var(--font-heading, 'Instrument Serif', Georgia, serif);
+  --foreground: #0A0A0A;
+  --destructive: #ca3214;
+  --shadow-blur: 3px;
+  --shadow-color: #000000;
+  --sidebar-ring: #2D5A3D;
+  --shadow-spread: 0px;
+  --letter-spacing: 0.025em;
+  --shadow-opacity: 0.17;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --card-foreground: #0A0A0A;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 1px;
+  --sidebar-primary: #7BA340;
+  --muted-foreground: #6B6B6B;
+  --accent-foreground: #0A0A0A;
+  --popover-foreground: #525252;
+  --primary-foreground: #FFFFFF;
+  --sidebar-foreground: #F9F7F4;
+  --secondary-foreground: #0A0A0A;
+  --destructive-foreground: #fffcfc;
+  --sidebar-accent-foreground: #F9F7F4;
+  --sidebar-primary-foreground: #FFFFFF;
+}
+
+.dark {
+  --card: #171717;
+  --ring: #7BA340;
+  --input: #242424;
+  --muted: #1f1f1f;
+  --accent: #313131;
+  --border: #292929;
+  --chart-1: #7BA340;
+  --chart-2: #4A6B2E;
+  --chart-3: #2D5A3D;
+  --chart-4: #1A3D2B;
+  --chart-5: #0D1F0E;
+  --popover: #242424;
+  --primary: #2D5A3D;
+  --sidebar: #0D1F0E;
+  --secondary: #242424;
+  --background: #121212;
+  --foreground: #e2e8f0;
+  --destructive: #541c15;
+  --sidebar-ring: #7BA340;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --card-foreground: #e2e8f0;
+  --sidebar-primary: #7BA340;
+  --muted-foreground: #a2a2a2;
+  --accent-foreground: #fafafa;
+  --popover-foreground: #a9a9a9;
+  --primary-foreground: #FFFFFF;
+  --sidebar-foreground: #F9F7F4;
+  --secondary-foreground: #fafafa;
+  --destructive-foreground: #ede9e8;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-primary-foreground: #FFFFFF;
+}
+
+@theme inline {
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-sidebar: var(--sidebar);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-card-foreground: var(--card-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+}
+
 body {
-  @apply bg-white text-slate-900 antialiased;
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-sans);
 }
 
 /* Thin scrollbar for the horizontal kanban board */
@@ -16,4 +149,34 @@ body {
 .kanban-scroll::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
+}
+
+/* ── CRM Sidebar ── */
+
+.glass-sidebar {
+  background: #F9F7F4;
+  border-right: 1px solid rgba(10, 10, 10, 0.08);
+  transition: width 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(10, 10, 10, 0.5);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.glass-sidebar-link:hover {
+  background: rgba(10, 10, 10, 0.04);
+  color: #0A0A0A;
+}
+
+.glass-sidebar-link.active {
+  background: rgba(45, 90, 61, 0.1);
+  color: #2D5A3D;
 }

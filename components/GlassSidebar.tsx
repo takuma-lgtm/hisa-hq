@@ -1,0 +1,209 @@
+'use client'
+
+import {
+  Menu,
+  LayoutDashboard,
+  KanbanSquare,
+  Users,
+  RefreshCw,
+  Package,
+  Inbox,
+  LogOut,
+} from 'lucide-react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import type { UserRole } from '@/types/database'
+import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+
+const NAV_ITEMS = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
+  { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
+] as const
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
+  closer: 'Closer',
+  lead_gen: 'Lead Gen',
+}
+
+const COLLAPSED_WIDTH = 60
+const EXPANDED_WIDTH = 240
+
+interface GlassSidebarProps {
+  userName: string
+  userRole: UserRole
+}
+
+export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    (item.roles as readonly string[]).includes(userRole),
+  )
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  const brand = (
+    <Link href="/" className="flex items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/hisa-logo.png"
+        alt="HISA Matcha"
+        className="shrink-0 h-10 w-auto"
+      />
+    </Link>
+  )
+
+  const brandSmall = (
+    <Link href="/" className="flex items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/hisa-logo.png"
+        alt="HISA Matcha"
+        className="shrink-0 h-8 w-auto"
+      />
+    </Link>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden lg:flex glass-sidebar flex-shrink-0 flex-col h-screen overflow-hidden"
+        style={{ width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+      >
+        {/* Brand */}
+        <div className="h-16 flex items-center justify-center border-b border-[#0A0A0A]/8">
+          {brand}
+        </div>
+
+        {/* Nav */}
+        <nav className={cn('flex-1 py-4 space-y-1', isExpanded ? 'px-3' : 'px-0 flex flex-col items-center')}>
+          {visibleItems.map(({ href, label, icon: Icon }) => {
+            const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'glass-sidebar-link overflow-hidden whitespace-nowrap',
+                  isActive && 'active',
+                  !isExpanded && 'w-10 h-10 justify-center p-0 rounded-lg',
+                )}
+                title={!isExpanded ? label : undefined}
+              >
+                <Icon size={18} className="shrink-0" />
+                {isExpanded && <span>{label}</span>}
+              </Link>
+            )
+          })}
+        </nav>
+
+        {/* User section */}
+        <div className={cn('py-4 border-t border-[#0A0A0A]/8', isExpanded ? 'px-3' : 'px-0 flex flex-col items-center')}>
+          <div className={cn('flex items-center mb-3', isExpanded ? 'gap-3' : 'justify-center')}>
+            <div className="w-9 h-9 rounded-full bg-[#2D5A3D]/10 flex items-center justify-center shrink-0 ring-2 ring-[#2D5A3D]/20">
+              <span className="text-[#2D5A3D] text-sm font-semibold">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            {isExpanded && (
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#0A0A0A] truncate">{userName}</p>
+                <p className="text-xs text-[#0A0A0A]/40">{ROLE_LABELS[userRole]}</p>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleSignOut}
+            className={cn(
+              'glass-sidebar-link text-[#0A0A0A]/40 hover:text-red-500 overflow-hidden whitespace-nowrap',
+              isExpanded ? 'w-full' : 'w-10 h-10 justify-center p-0 rounded-lg',
+            )}
+            title={!isExpanded ? 'Sign out' : undefined}
+          >
+            <LogOut size={16} className="shrink-0" />
+            {isExpanded && <span>Sign out</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile top bar + sheet */}
+      <div className="lg:hidden fixed top-0 inset-x-0 z-30 glass-sidebar h-14 flex items-center justify-between px-4">
+        {brandSmall}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-[#0A0A0A]/60 hover:text-[#0A0A0A] hover:bg-[#0A0A0A]/5">
+              <Menu className="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0 glass-sidebar border-r-0">
+            <SheetHeader className="h-16 flex items-center px-4 border-b border-[#0A0A0A]/8">
+              <SheetTitle>{brandSmall}</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col flex-1 overflow-y-auto">
+              <nav className="flex-1 px-3 py-4 space-y-1">
+                {visibleItems.map(({ href, label, icon: Icon }) => {
+                  const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={cn('glass-sidebar-link', isActive && 'active')}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+              <div className="px-3 py-4 border-t border-[#0A0A0A]/8">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-full bg-[#2D5A3D]/10 flex items-center justify-center shrink-0 ring-2 ring-[#2D5A3D]/20">
+                    <span className="text-[#2D5A3D] text-sm font-semibold">
+                      {userName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[#0A0A0A] truncate">{userName}</p>
+                    <p className="text-xs text-[#0A0A0A]/40">{ROLE_LABELS[userRole]}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="glass-sidebar-link w-full text-[#0A0A0A]/40 hover:text-red-500"
+                >
+                  <LogOut size={16} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
+  )
+}

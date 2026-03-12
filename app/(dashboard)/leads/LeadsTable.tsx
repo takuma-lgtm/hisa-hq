@@ -111,7 +111,7 @@ export default function LeadsTable({ leads, profiles }: Props) {
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
               <tr>
-                <SortTh col="cafe_name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Cafe Name</SortTh>
+                <SortTh col="cafe_name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} first>Cafe Name</SortTh>
                 <Th>Location</Th>
                 <Th>Serves Matcha</Th>
                 <Th>Platform</Th>
@@ -128,7 +128,7 @@ export default function LeadsTable({ leads, profiles }: Props) {
                   onClick={() => router.push(`/leads/${lead.customer_id}`)}
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                 >
-                  <td className="px-3 py-2 text-slate-900 font-medium max-w-[200px] truncate">
+                  <td className="pl-6 pr-3 py-2 text-slate-900 font-medium max-w-[200px] truncate">
                     {lead.cafe_name}
                   </td>
                   <td className="px-3 py-2 text-slate-600">
@@ -163,28 +163,29 @@ export default function LeadsTable({ leads, profiles }: Props) {
   )
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children, first }: { children: React.ReactNode; first?: boolean }) {
   return (
-    <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide whitespace-nowrap">
+    <th className={`${first ? 'pl-6' : 'pl-3'} pr-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide whitespace-nowrap`}>
       {children}
     </th>
   )
 }
 
 function SortTh({
-  children, col, sortKey, sortDir, onSort,
+  children, col, sortKey, sortDir, onSort, first,
 }: {
   children: React.ReactNode
   col: SortKey
   sortKey: SortKey | null
   sortDir: SortDir
   onSort: (k: SortKey) => void
+  first?: boolean
 }) {
   const active = sortKey === col
   return (
     <th
       onClick={() => onSort(col)}
-      className={`px-3 py-2 text-left text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${active ? 'text-green-700' : 'text-slate-500 hover:text-slate-800'}`}
+      className={`${first ? 'pl-6' : 'pl-3'} pr-3 py-2 text-left text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${active ? 'text-green-700' : 'text-slate-500 hover:text-slate-800'}`}
     >
       <span className="inline-flex items-center gap-1">
         {children}

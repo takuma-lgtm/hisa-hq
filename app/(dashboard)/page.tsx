@@ -42,9 +42,9 @@ async function getStats(role: UserRole) {
 
 function StatCard({ label, value }: { label: string; value: number | null | undefined }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <p className="text-sm text-slate-500 mb-1">{label}</p>
-      <p className="text-3xl font-semibold text-slate-900">{value ?? 0}</p>
+    <div className="bg-white rounded-xl border border-[#0A0A0A]/8 p-5">
+      <p className="text-sm text-[#0A0A0A]/50 mb-1">{label}</p>
+      <p className="text-3xl font-semibold text-[#0A0A0A]">{value ?? 0}</p>
     </div>
   )
 }
@@ -67,10 +67,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 overflow-auto p-6">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">
-          Good morning, {profile?.name} 👋
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Here&apos;s what&apos;s happening today.</p>
+        <h1 className="text-xl font-semibold text-[#0A0A0A]">Dashboard</h1>
       </div>
 
       {role === 'lead_gen' && 'totalLeads' in stats && (

@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw source assets
+hisa logo transparent (3).png
+public/hisa-logo-original.png
