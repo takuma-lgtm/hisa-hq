@@ -27,6 +27,9 @@ export type NotificationType   = Database['public']['Enums']['notification_type_
 export type CallType           = Database['public']['Enums']['call_type_enum']
 export type CallOutcome        = Database['public']['Enums']['call_outcome_enum']
 export type LeadStage          = Database['public']['Enums']['lead_stage_enum']
+export type SupplierStage      = Database['public']['Enums']['supplier_stage_enum']
+export type SupplierBusinessType = Database['public']['Enums']['supplier_business_type_enum']
+export type SampleTrackingStatus = Database['public']['Enums']['sample_tracking_status_enum']
 
 export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
   new_lead:     'New Lead',
@@ -35,6 +38,31 @@ export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
   qualified:    'Qualified',
   handed_off:   'Handed Off',
   disqualified: 'Disqualified',
+}
+
+export const SUPPLIER_STAGE_LABELS: Record<SupplierStage, string> = {
+  not_started: '未着手',
+  inquiry_sent: '問い合わせ連絡済',
+  met_at_event: 'イベントでご挨拶',
+  in_communication: 'やりとり中',
+  visit_scheduled: '訪問予定',
+  visited: '訪問済',
+  deal_established: '取引成立',
+  ng: 'NG',
+}
+
+export const SUPPLIER_BUSINESS_TYPE_LABELS: Record<SupplierBusinessType, string> = {
+  tea_wholesaler: '製茶問屋',
+  farm: '農園',
+  broker: 'ブローカー',
+  other: 'その他',
+}
+
+export const SAMPLE_STATUS_LABELS: Record<SampleTrackingStatus, string> = {
+  none: '—',
+  waiting: 'サンプル待ち',
+  received: 'サンプル着',
+  evaluated: '評価済',
 }
 
 // Row shorthand types
@@ -58,12 +86,60 @@ export type CrmSetting              = Database['public']['Tables']['crm_settings
 
 // Draft messages
 export type DraftMessage              = Database['public']['Tables']['draft_messages']['Row']
+export type SensoryLog                = Database['public']['Tables']['sensory_logs']['Row']
 
 // Inventory types
 export type WarehouseLocation       = Database['public']['Tables']['warehouse_locations']['Row']
 export type Sku                     = Database['public']['Tables']['skus']['Row']
 export type InventoryLevel          = Database['public']['Tables']['inventory_levels']['Row']
 export type InventoryTransaction    = Database['public']['Tables']['inventory_transactions']['Row']
+
+// Supplier types
+export type Supplier               = Database['public']['Tables']['suppliers']['Row']
+export type SupplierCommunication  = Database['public']['Tables']['supplier_communications']['Row']
+export type SupplierProduct        = Database['public']['Tables']['supplier_products']['Row']
+export type SupplierMessageTemplate = Database['public']['Tables']['supplier_message_templates']['Row']
+export type SupplierPurchaseOrder   = Database['public']['Tables']['supplier_purchase_orders']['Row']
+export type SupplierPurchaseOrderItem = Database['public']['Tables']['supplier_purchase_order_items']['Row']
+
+// Payment types
+export type PaymentMethod = 'stripe_ach' | 'stripe_card' | 'wise_transfer' | 'zelle'
+
+export interface InvoiceLineItem {
+  product_name: string
+  qty_kg: number
+  price_per_kg: number
+  subtotal: number
+}
+
+export interface InvoiceWithDetails {
+  invoice_id: string
+  invoice_number: string | null
+  opportunity_id: string
+  customer_id: string
+  quotation_id: string | null
+  amount: number
+  currency: string
+  payment_method: PaymentMethod | null
+  stripe_payment_link: string | null
+  stripe_payment_intent: string | null
+  stripe_checkout_session_id: string | null
+  wise_transfer_reference: string | null
+  wise_bank_details: Record<string, string> | null
+  zelle_email: string | null
+  line_items_detail: InvoiceLineItem[] | null
+  payment_status: 'pending' | 'paid' | 'failed'
+  payment_terms: string | null
+  due_date: string | null
+  paid_at: string | null
+  sent_at: string | null
+  sent_via: string | null
+  notes: string | null
+  customer_name: string | null
+  reviewed_by: string | null
+  approved_at: string | null
+  created_at: string
+}
 
 // JSONB payload shapes (legacy — new code uses normalized tables)
 export interface ProductSent {
@@ -154,6 +230,36 @@ export interface Database {
           name?: string
           role?: Database['public']['Enums']['user_role']
           created_at?: string
+        }
+        Relationships: []
+      }
+      daily_briefs: {
+        Row: {
+          brief_id: string
+          token: string
+          brief_data: Record<string, unknown>
+          brief_html: string
+          brief_text: string
+          generated_at: string
+          supplier_notes: string | null
+          posted_to_chat: boolean
+          posted_at: string | null
+        }
+        Insert: {
+          brief_id?: string
+          token: string
+          brief_data: Record<string, unknown>
+          brief_html: string
+          brief_text: string
+          generated_at?: string
+          supplier_notes?: string | null
+          posted_to_chat?: boolean
+          posted_at?: string | null
+        }
+        Update: {
+          supplier_notes?: string | null
+          posted_to_chat?: boolean
+          posted_at?: string | null
         }
         Relationships: []
       }
@@ -603,6 +709,26 @@ export interface Database {
           selling_price_eur: number | null
           min_price_eur: number | null
           gross_profit_per_kg_usd: number | null
+          // Migration 016 additions
+          tasting_headline: string | null
+          short_description: string | null
+          long_description: string | null
+          harvest_season: string | null
+          cultivar: string | null
+          production_region: string | null
+          grind_method: string | null
+          roast_level: string | null
+          texture_description: string | null
+          best_for: string | null
+          photo_url: string | null
+          photo_folder_url: string | null
+          is_competitor: boolean
+          competitor_producer: string | null
+          competitor_url: string | null
+          introduced_by: string | null
+          should_contact_producer: boolean
+          // Migration 017 addition
+          primary_supplier_id: string | null
         }
         Insert: {
           product_id: string
@@ -635,6 +761,24 @@ export interface Database {
           selling_price_eur?: number | null
           min_price_eur?: number | null
           gross_profit_per_kg_usd?: number | null
+          tasting_headline?: string | null
+          short_description?: string | null
+          long_description?: string | null
+          harvest_season?: string | null
+          cultivar?: string | null
+          production_region?: string | null
+          grind_method?: string | null
+          roast_level?: string | null
+          texture_description?: string | null
+          best_for?: string | null
+          photo_url?: string | null
+          photo_folder_url?: string | null
+          is_competitor?: boolean
+          competitor_producer?: string | null
+          competitor_url?: string | null
+          introduced_by?: string | null
+          should_contact_producer?: boolean
+          primary_supplier_id?: string | null
         }
         Update: {
           product_id?: string
@@ -667,6 +811,76 @@ export interface Database {
           selling_price_eur?: number | null
           min_price_eur?: number | null
           gross_profit_per_kg_usd?: number | null
+          tasting_headline?: string | null
+          short_description?: string | null
+          long_description?: string | null
+          harvest_season?: string | null
+          cultivar?: string | null
+          production_region?: string | null
+          grind_method?: string | null
+          roast_level?: string | null
+          texture_description?: string | null
+          best_for?: string | null
+          photo_url?: string | null
+          photo_folder_url?: string | null
+          is_competitor?: boolean
+          competitor_producer?: string | null
+          competitor_url?: string | null
+          introduced_by?: string | null
+          should_contact_producer?: boolean
+          primary_supplier_id?: string | null
+        }
+        Relationships: []
+      }
+      sensory_logs: {
+        Row: {
+          log_id: string
+          product_id: string
+          taster_name: string
+          tasted_at: string
+          umami_rating: number | null
+          bitterness_rating: number | null
+          fineness_rating: number | null
+          color_notes: string | null
+          texture_notes: string | null
+          aroma_notes: string | null
+          flavor_notes: string | null
+          comparison_notes: string | null
+          general_notes: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          log_id?: string
+          product_id: string
+          taster_name: string
+          tasted_at?: string
+          umami_rating?: number | null
+          bitterness_rating?: number | null
+          fineness_rating?: number | null
+          color_notes?: string | null
+          texture_notes?: string | null
+          aroma_notes?: string | null
+          flavor_notes?: string | null
+          comparison_notes?: string | null
+          general_notes?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          log_id?: string
+          product_id?: string
+          taster_name?: string
+          tasted_at?: string
+          umami_rating?: number | null
+          bitterness_rating?: number | null
+          fineness_rating?: number | null
+          color_notes?: string | null
+          texture_notes?: string | null
+          aroma_notes?: string | null
+          flavor_notes?: string | null
+          comparison_notes?: string | null
+          general_notes?: string | null
+          created_by?: string | null
         }
         Relationships: []
       }
@@ -717,42 +931,84 @@ export interface Database {
       invoices: {
         Row: {
           invoice_id: string
-          quotation_id: string
+          quotation_id: string | null
           opportunity_id: string
           customer_id: string
           amount: number
+          currency: string
+          payment_method: string | null
           stripe_payment_link: string | null
           stripe_payment_intent: string | null
+          stripe_checkout_session_id: string | null
+          wise_transfer_reference: string | null
+          wise_bank_details: Json | null
+          zelle_email: string | null
+          line_items_detail: Json | null
           payment_status: Database['public']['Enums']['payment_status_enum']
           payment_terms: string | null
+          due_date: string | null
+          paid_at: string | null
+          notes: string | null
+          invoice_number: string | null
+          sent_at: string | null
+          sent_via: string | null
+          customer_name: string | null
           reviewed_by: string | null
           approved_at: string | null
           created_at: string
         }
         Insert: {
           invoice_id?: string
-          quotation_id: string
+          quotation_id?: string | null
           opportunity_id: string
           customer_id: string
           amount: number
+          currency?: string
+          payment_method?: string | null
           stripe_payment_link?: string | null
           stripe_payment_intent?: string | null
+          stripe_checkout_session_id?: string | null
+          wise_transfer_reference?: string | null
+          wise_bank_details?: Json | null
+          zelle_email?: string | null
+          line_items_detail?: Json | null
           payment_status?: Database['public']['Enums']['payment_status_enum']
           payment_terms?: string | null
+          due_date?: string | null
+          paid_at?: string | null
+          notes?: string | null
+          invoice_number?: string | null
+          sent_at?: string | null
+          sent_via?: string | null
+          customer_name?: string | null
           reviewed_by?: string | null
           approved_at?: string | null
           created_at?: string
         }
         Update: {
           invoice_id?: string
-          quotation_id?: string
+          quotation_id?: string | null
           opportunity_id?: string
           customer_id?: string
           amount?: number
+          currency?: string
+          payment_method?: string | null
           stripe_payment_link?: string | null
           stripe_payment_intent?: string | null
+          stripe_checkout_session_id?: string | null
+          wise_transfer_reference?: string | null
+          wise_bank_details?: Json | null
+          zelle_email?: string | null
+          line_items_detail?: Json | null
           payment_status?: Database['public']['Enums']['payment_status_enum']
           payment_terms?: string | null
+          due_date?: string | null
+          paid_at?: string | null
+          notes?: string | null
+          invoice_number?: string | null
+          sent_at?: string | null
+          sent_via?: string | null
+          customer_name?: string | null
           reviewed_by?: string | null
           approved_at?: string | null
         }
@@ -1229,6 +1485,332 @@ export interface Database {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          supplier_id: string
+          supplier_name: string
+          supplier_name_en: string | null
+          contact_person: string | null
+          email: string | null
+          phone: string | null
+          address: string | null
+          city: string | null
+          prefecture: string | null
+          country: string
+          website_url: string | null
+          instagram_url: string | null
+          stage: Database['public']['Enums']['supplier_stage_enum']
+          business_type: Database['public']['Enums']['supplier_business_type_enum'] | null
+          sample_status: Database['public']['Enums']['sample_tracking_status_enum']
+          source: string | null
+          specialty: string | null
+          certifications: string[] | null
+          annual_capacity_kg: number | null
+          lead_time_days: number | null
+          payment_terms: string | null
+          memo: string | null
+          action_memo: string | null
+          notes: string | null
+          assigned_to: string | null
+          first_contacted_at: string | null
+          last_contacted_at: string | null
+          date_updated: string | null
+          converted_at: string | null
+          quality_rating: number | null
+          reliability_rating: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          supplier_id?: string
+          supplier_name: string
+          supplier_name_en?: string | null
+          contact_person?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          city?: string | null
+          prefecture?: string | null
+          country?: string
+          website_url?: string | null
+          instagram_url?: string | null
+          stage?: Database['public']['Enums']['supplier_stage_enum']
+          business_type?: Database['public']['Enums']['supplier_business_type_enum'] | null
+          sample_status?: Database['public']['Enums']['sample_tracking_status_enum']
+          source?: string | null
+          specialty?: string | null
+          certifications?: string[] | null
+          annual_capacity_kg?: number | null
+          lead_time_days?: number | null
+          payment_terms?: string | null
+          memo?: string | null
+          action_memo?: string | null
+          notes?: string | null
+          assigned_to?: string | null
+          first_contacted_at?: string | null
+          last_contacted_at?: string | null
+          date_updated?: string | null
+          converted_at?: string | null
+          quality_rating?: number | null
+          reliability_rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          supplier_id?: string
+          supplier_name?: string
+          supplier_name_en?: string | null
+          contact_person?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          city?: string | null
+          prefecture?: string | null
+          country?: string
+          website_url?: string | null
+          instagram_url?: string | null
+          stage?: Database['public']['Enums']['supplier_stage_enum']
+          business_type?: Database['public']['Enums']['supplier_business_type_enum'] | null
+          sample_status?: Database['public']['Enums']['sample_tracking_status_enum']
+          source?: string | null
+          specialty?: string | null
+          certifications?: string[] | null
+          annual_capacity_kg?: number | null
+          lead_time_days?: number | null
+          payment_terms?: string | null
+          memo?: string | null
+          action_memo?: string | null
+          notes?: string | null
+          assigned_to?: string | null
+          first_contacted_at?: string | null
+          last_contacted_at?: string | null
+          date_updated?: string | null
+          converted_at?: string | null
+          quality_rating?: number | null
+          reliability_rating?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      supplier_communications: {
+        Row: {
+          comm_id: string
+          supplier_id: string
+          channel: string
+          direction: string
+          subject: string | null
+          message_body: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          comm_id?: string
+          supplier_id: string
+          channel?: string
+          direction?: string
+          subject?: string | null
+          message_body?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          comm_id?: string
+          supplier_id?: string
+          channel?: string
+          direction?: string
+          subject?: string | null
+          message_body?: string | null
+          notes?: string | null
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_communications_supplier_id_fkey'
+            columns: ['supplier_id']
+            referencedRelation: 'suppliers'
+            referencedColumns: ['supplier_id']
+          },
+        ]
+      }
+      supplier_products: {
+        Row: {
+          id: string
+          supplier_id: string
+          product_id: string | null
+          product_name_jpn: string | null
+          cost_per_kg_jpy: number | null
+          moq_kg: number | null
+          is_primary: boolean
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          supplier_id: string
+          product_id?: string | null
+          product_name_jpn?: string | null
+          cost_per_kg_jpy?: number | null
+          moq_kg?: number | null
+          is_primary?: boolean
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          supplier_id?: string
+          product_id?: string | null
+          product_name_jpn?: string | null
+          cost_per_kg_jpy?: number | null
+          moq_kg?: number | null
+          is_primary?: boolean
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_products_supplier_id_fkey'
+            columns: ['supplier_id']
+            referencedRelation: 'suppliers'
+            referencedColumns: ['supplier_id']
+          },
+          {
+            foreignKeyName: 'supplier_products_product_id_fkey'
+            columns: ['product_id']
+            referencedRelation: 'products'
+            referencedColumns: ['product_id']
+          },
+        ]
+      }
+      supplier_message_templates: {
+        Row: {
+          template_id: string
+          template_name: string
+          channel: string
+          message_body: string
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          template_id?: string
+          template_name: string
+          channel?: string
+          message_body: string
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          template_id?: string
+          template_name?: string
+          channel?: string
+          message_body?: string
+          is_default?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      supplier_purchase_orders: {
+        Row: {
+          po_id: string
+          po_number: string
+          supplier_id: string
+          order_date: string
+          expected_delivery: string | null
+          actual_delivery: string | null
+          delivery_status: string
+          total_amount_jpy: number | null
+          payment_status: string
+          payment_date: string | null
+          quality_rating: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          po_id?: string
+          po_number: string
+          supplier_id: string
+          order_date?: string
+          expected_delivery?: string | null
+          actual_delivery?: string | null
+          delivery_status?: string
+          total_amount_jpy?: number | null
+          payment_status?: string
+          payment_date?: string | null
+          quality_rating?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          po_id?: string
+          po_number?: string
+          supplier_id?: string
+          order_date?: string
+          expected_delivery?: string | null
+          actual_delivery?: string | null
+          delivery_status?: string
+          total_amount_jpy?: number | null
+          payment_status?: string
+          payment_date?: string | null
+          quality_rating?: number | null
+          notes?: string | null
+          created_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_purchase_orders_supplier_id_fkey'
+            columns: ['supplier_id']
+            referencedRelation: 'suppliers'
+            referencedColumns: ['supplier_id']
+          },
+        ]
+      }
+      supplier_purchase_order_items: {
+        Row: {
+          item_id: string
+          po_id: string
+          product_id: string | null
+          product_name_jpn: string | null
+          quantity_kg: number
+          price_per_kg_jpy: number
+          subtotal_jpy: number | null
+          notes: string | null
+        }
+        Insert: {
+          item_id?: string
+          po_id: string
+          product_id?: string | null
+          product_name_jpn?: string | null
+          quantity_kg: number
+          price_per_kg_jpy: number
+          subtotal_jpy?: number | null
+          notes?: string | null
+        }
+        Update: {
+          item_id?: string
+          po_id?: string
+          product_id?: string | null
+          product_name_jpn?: string | null
+          quantity_kg?: number
+          price_per_kg_jpy?: number
+          subtotal_jpy?: number | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'supplier_purchase_order_items_po_id_fkey'
+            columns: ['po_id']
+            referencedRelation: 'supplier_purchase_orders'
+            referencedColumns: ['po_id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1246,6 +1828,10 @@ export interface Database {
           p_reference_id?: string
           p_reference_type?: string
         }
+        Returns: string
+      }
+      nextval_text: {
+        Args: { seq_name: string }
         Returns: string
       }
     }
@@ -1303,6 +1889,17 @@ export interface Database {
         | 'handoff_received'
       call_type_enum: 'discovery' | 'pre_sample' | 'post_delivery' | 'negotiation' | 'general'
       call_outcome_enum: 'not_interested' | 'follow_up' | 'samples_approved' | 'deal_closed' | 'other'
+      supplier_stage_enum:
+        | 'not_started'
+        | 'inquiry_sent'
+        | 'met_at_event'
+        | 'in_communication'
+        | 'visit_scheduled'
+        | 'visited'
+        | 'deal_established'
+        | 'ng'
+      supplier_business_type_enum: 'tea_wholesaler' | 'farm' | 'broker' | 'other'
+      sample_tracking_status_enum: 'none' | 'waiting' | 'received' | 'evaluated'
     }
     CompositeTypes: {
       [_ in never]: never

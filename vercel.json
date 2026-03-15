@@ -3,6 +3,10 @@
     {
       "path": "/api/tracking/poll",
       "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/daily-brief/generate",
+      "schedule": "0 0 * * *"
     }
   ]
 }

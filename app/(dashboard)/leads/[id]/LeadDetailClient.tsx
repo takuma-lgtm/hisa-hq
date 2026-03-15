@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { isFullyQualified, qualificationProgress } from '@/lib/qualification'
 import { CheckCircle, AlertCircle } from 'lucide-react'
 import EnrichButton from './EnrichButton'
+import BuyerMessageAnalyzer from './BuyerMessageAnalyzer'
 import ClayEnrichButton from './ClayEnrichButton'
 import MessageComposer from './MessageComposer'
 import OutreachTimeline from './OutreachTimeline'
@@ -372,6 +373,20 @@ export default function LeadDetailClient({ lead, profiles, canEdit }: Props) {
               <ConvertButton lead={{ ...lead, ...localQualCustomer, lead_stage: stage }} canEdit={canEdit} />
             </div>
           )}
+        </section>
+      )}
+
+      {/* Analyze Buyer Message */}
+      {canEdit && (
+        <section className="mt-6 bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+            Analyze Buyer Message
+          </h2>
+          <BuyerMessageAnalyzer
+            lead={lead}
+            canEdit={canEdit}
+            onDraftReady={(text) => setDraftMessage(text)}
+          />
         </section>
       )}
 
