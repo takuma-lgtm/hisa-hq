@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { LeadStage } from '@/types/database'
+import { isFullyQualified, shouldAutoAdvanceToQualified } from '@/lib/qualification'
 
 // Only these fields may be updated via this endpoint (CRM-managed)
-const ALLOWED_FIELDS = new Set(['lead_stage', 'lead_assigned_to', 'notes'])
+const ALLOWED_FIELDS = new Set([
+  'lead_stage',
+  'lead_assigned_to',
+  'notes',
+  'qualified_products',
+  'qualified_volume_kg',
+  'qualified_budget',
+  'qualified_samples_agreed',
+])
 
 const VALID_STAGES = new Set<LeadStage>([
   'new_lead', 'contacted', 'replied', 'qualified', 'handed_off', 'disqualified',
@@ -44,6 +53,16 @@ export async function PATCH(
       }
     }
 
+    // Type coercion for qualification fields
+    if (key === 'qualified_volume_kg') {
+      patch[key] = value != null ? Number(value) : null
+      continue
+    }
+    if (key === 'qualified_samples_agreed') {
+      patch[key] = value === true || value === 'true'
+      continue
+    }
+
     patch[key] = value ?? null
   }
 
@@ -61,6 +80,23 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+
+  // Auto-advance to 'qualified' when all 4 qualification fields are filled
+  if (isFullyQualified(data) && shouldAutoAdvanceToQualified(data.lead_stage)) {
+    const { data: advanced, error: advError } = await supabase
+      .from('customers')
+      .update({
+        lead_stage: 'qualified' as LeadStage,
+        qualified_at: new Date().toISOString(),
+      } as never)
+      .eq('customer_id', id)
+      .select()
+      .single()
+
+    if (!advError && advanced) {
+      return NextResponse.json({ success: true, customer: advanced })
+    }
+  }
 
   return NextResponse.json({ success: true, customer: data })
 }

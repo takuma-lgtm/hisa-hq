@@ -1,25 +1,40 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { getMarginHealth, type MarginThresholds } from '@/lib/margin-health'
 import type { Product } from '@/types/database'
+import { Button } from '@/components/ui/button'
+import ProductEditModal from './ProductEditModal'
 
 interface Props {
   products: Product[]
   isAdmin: boolean
+  marginThresholds: MarginThresholds
 }
 
-type ViewMode = 'table' | 'cards'
-type SortKey = 'supplier' | 'monthly_available_stock_kg' | 'default_selling_price_usd' | 'min_selling_price_usd' | 'gross_profit_margin'
+type SortKey =
+  | 'supplier'
+  | 'matcha_cost_per_kg_jpy'
+  | 'selling_price_usd'
+  | 'min_price_usd'
+  | 'gross_profit_margin'
+  | 'monthly_available_stock_kg'
 type SortDir = 'asc' | 'desc'
 
-export default function ProductsTable({ products, isAdmin }: Props) {
+export default function ProductsTable({ products, isAdmin, marginThresholds }: Props) {
   const [search, setSearch] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [view, setView] = useState<ViewMode>('table')
+  const [showInactive, setShowInactive] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+
+  // Modal state
+  const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [allProducts, setAllProducts] = useState(products)
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -31,18 +46,19 @@ export default function ProductsTable({ products, isAdmin }: Props) {
   }
 
   const suppliers = useMemo(
-    () => [...new Set(products.map((p) => p.supplier).filter(Boolean))].sort() as string[],
-    [products],
+    () => [...new Set(allProducts.map((p) => p.supplier).filter(Boolean))].sort() as string[],
+    [allProducts],
   )
 
   const types = useMemo(
-    () => [...new Set(products.map((p) => p.product_type).filter(Boolean))].sort() as string[],
-    [products],
+    () => [...new Set(allProducts.map((p) => p.product_type).filter(Boolean))].sort() as string[],
+    [allProducts],
   )
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    const rows = products.filter((p) => {
+    const rows = allProducts.filter((p) => {
+      if (!showInactive && !p.active) return false
       if (supplierFilter && p.supplier !== supplierFilter) return false
       if (typeFilter && p.product_type !== typeFilter) return false
       if (q) {
@@ -50,8 +66,8 @@ export default function ProductsTable({ products, isAdmin }: Props) {
           p.customer_facing_product_name,
           p.product_id,
           p.supplier_product_name,
+          p.name_internal_jpn,
           p.supplier,
-          p.tasting_notes,
         ]
           .filter(Boolean)
           .join(' ')
@@ -66,7 +82,6 @@ export default function ProductsTable({ products, isAdmin }: Props) {
     return [...rows].sort((a, b) => {
       const av = a[sortKey]
       const bv = b[sortKey]
-      // nulls always last regardless of direction
       if (av == null && bv == null) return 0
       if (av == null) return 1
       if (bv == null) return -1
@@ -75,23 +90,82 @@ export default function ProductsTable({ products, isAdmin }: Props) {
         : (av as number) - (bv as number)
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [products, search, supplierFilter, typeFilter, sortKey, sortDir])
+  }, [allProducts, search, supplierFilter, typeFilter, showInactive, sortKey, sortDir])
 
-  function fmt(val: number | null | undefined, type: 'currency' | 'pct' | 'stock'): string {
+  const activeCount = allProducts.filter((p) => p.active).length
+
+  function handleRowClick(product: Product) {
+    if (!isAdmin) return
+    setEditProduct(product)
+    setModalOpen(true)
+  }
+
+  function handleAddProduct() {
+    setEditProduct(null)
+    setModalOpen(true)
+  }
+
+  function handleSaved(updated: Product) {
+    setAllProducts((prev) => {
+      const idx = prev.findIndex((p) => p.product_id === updated.product_id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = updated
+        return next
+      }
+      return [updated, ...prev]
+    })
+  }
+
+  function fmt(val: number | null | undefined, type: 'usd' | 'jpy' | 'pct' | 'stock'): string {
     if (val == null) return '—'
-    if (type === 'currency') return formatCurrency(val)
+    if (type === 'usd') return formatCurrency(val, 'USD')
+    if (type === 'jpy') return `¥${val.toLocaleString()}`
     if (type === 'pct') return `${(val * 100).toFixed(0)}%`
-    if (type === 'stock') return `~${val} kg`
+    if (type === 'stock') return val > 0 ? `~${val}kg` : '0kg'
     return '—'
   }
 
+  function marginBadge(product: Product) {
+    const health = getMarginHealth(product.gross_profit_margin, product.gross_profit_per_kg_usd, marginThresholds)
+    const colors = {
+      green: 'bg-green-100 text-green-800',
+      yellow: 'bg-yellow-100 text-yellow-800',
+      red: 'bg-red-100 text-red-800',
+    }
+    const margin = product.gross_profit_margin
+    return (
+      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${colors[health]}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${health === 'green' ? 'bg-green-500' : health === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'}`} />
+        {margin != null ? `${(margin * 100).toFixed(0)}%` : '—'}
+      </span>
+    )
+  }
+
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Products</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {activeCount} active product{activeCount !== 1 ? 's' : ''}
+            {allProducts.length > activeCount && ` · ${allProducts.length} total`}
+          </p>
+        </div>
+        {isAdmin && (
+          <Button onClick={handleAddProduct} size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        )}
+      </div>
+
       {/* Filter bar */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-200 shrink-0">
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-200 shrink-0 flex-wrap">
         <input
           type="search"
-          placeholder="Search products…"
+          placeholder="Search products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 max-w-sm text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -116,131 +190,88 @@ export default function ProductsTable({ products, isAdmin }: Props) {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
-
-        {/* View toggle */}
-        <div className="ml-auto flex rounded-lg border border-slate-200 overflow-hidden">
-          <button
-            onClick={() => setView('table')}
-            title="Table view"
-            className={`px-2.5 py-1.5 text-slate-500 hover:text-slate-800 transition-colors ${view === 'table' ? 'bg-slate-100 text-slate-800' : ''}`}
-          >
-            <TableIcon />
-          </button>
-          <button
-            onClick={() => setView('cards')}
-            title="Card view"
-            className={`px-2.5 py-1.5 text-slate-500 hover:text-slate-800 transition-colors border-l border-slate-200 ${view === 'cards' ? 'bg-slate-100 text-slate-800' : ''}`}
-          >
-            <GridIcon />
-          </button>
-        </div>
+        <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer ml-auto">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            className="rounded border-slate-300"
+          />
+          Show inactive
+        </label>
       </div>
 
-      {/* Content */}
+      {/* Table */}
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
           <p className="text-center py-20 text-slate-400 text-sm">No products match your filters.</p>
-        ) : view === 'table' ? (
+        ) : (
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
               <tr>
-                <Th>External ENG</Th>
-                <Th>Internal ENG</Th>
+                <Th>Product</Th>
                 <Th>Internal JPN</Th>
                 <SortTh col="supplier" sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Supplier</SortTh>
                 <Th>Type</Th>
+                <SortTh col="matcha_cost_per_kg_jpy" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Cost (¥/kg)</SortTh>
+                <SortTh col="selling_price_usd" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Price ($/kg)</SortTh>
+                <SortTh col="min_price_usd" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Min ($)</SortTh>
+                <SortTh col="gross_profit_margin" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Margin</SortTh>
                 <SortTh col="monthly_available_stock_kg" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Stock/mo</SortTh>
-                <SortTh col="default_selling_price_usd" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Price/kg</SortTh>
-                <SortTh col="min_selling_price_usd" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Min price</SortTh>
-                {isAdmin && <Th right>Landing cost</Th>}
-                {isAdmin && <SortTh col="gross_profit_margin" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Margin</SortTh>}
-                <Th>Notes</Th>
+                <Th>Status</Th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p) => (
                 <tr
                   key={p.product_id}
-                  className={`border-b border-slate-100 hover:bg-slate-50 ${!p.active ? 'opacity-50' : ''}`}
+                  onClick={() => handleRowClick(p)}
+                  className={`border-b border-slate-100 hover:bg-slate-50 ${isAdmin ? 'cursor-pointer' : ''} ${!p.active ? 'opacity-50' : ''}`}
                 >
-                  <td className={`px-3 py-2 text-slate-900 max-w-[180px] truncate ${!p.active ? 'italic' : ''}`}>
-                    {p.customer_facing_product_name ?? '—'}
+                  <td className="px-3 py-2">
+                    <div className="text-slate-900 font-medium truncate max-w-[180px]">
+                      {p.customer_facing_product_name}
+                    </div>
+                    <div className="text-[10px] text-slate-400">{p.product_id}</div>
                   </td>
-                  <td className="px-3 py-2 text-slate-700">{p.product_id}</td>
-                  <td className="px-3 py-2 text-slate-700">{p.supplier_product_name ?? '—'}</td>
+                  <td className="px-3 py-2 text-slate-600 text-xs">{p.name_internal_jpn ?? p.supplier_product_name ?? '—'}</td>
                   <td className="px-3 py-2 text-slate-600">{p.supplier ?? '—'}</td>
-                  <td className="px-3 py-2 text-slate-600">{p.product_type ?? '—'}</td>
+                  <td className="px-3 py-2">
+                    {p.product_type ? (
+                      <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full">
+                        {p.product_type}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <Td right>{fmt(p.matcha_cost_per_kg_jpy, 'jpy')}</Td>
+                  <Td right>{fmt(p.selling_price_usd ?? p.default_selling_price_usd, 'usd')}</Td>
+                  <Td right>{fmt(p.min_price_usd ?? p.min_selling_price_usd, 'usd')}</Td>
+                  <td className="px-3 py-2 text-right">{marginBadge(p)}</td>
                   <Td right>{fmt(p.monthly_available_stock_kg, 'stock')}</Td>
-                  <Td right>{fmt(p.default_selling_price_usd ?? p.price_per_kg, 'currency')}</Td>
-                  <Td right>{fmt(p.min_selling_price_usd, 'currency')}</Td>
-                  {isAdmin && <Td right>{fmt(p.landing_cost_per_kg_usd, 'currency')}</Td>}
-                  {isAdmin && <Td right>{fmt(p.gross_profit_margin, 'pct')}</Td>}
-                  <td className="px-3 py-2 text-slate-500 max-w-[220px] truncate">{p.tasting_notes ?? '—'}</td>
+                  <td className="px-3 py-2">
+                    {p.active ? (
+                      <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Active</span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Inactive</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : (
-          /* Card view */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-            {filtered.map((p) => (
-              <div
-                key={p.product_id}
-                className={`bg-white border rounded-xl p-5 ${p.active ? 'border-slate-200' : 'border-slate-100 opacity-60'}`}
-              >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-slate-900 leading-snug truncate">
-                      {p.customer_facing_product_name}
-                    </h3>
-                    <p className="text-[10px] text-slate-400">{p.product_id}</p>
-                    {p.supplier_product_name && (
-                      <p className="text-[10px] text-slate-400">{p.supplier_product_name}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
-                    {!p.active && (
-                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
-                        Inactive
-                      </span>
-                    )}
-                    {p.product_type && (
-                      <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full">
-                        {p.product_type}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {p.supplier && (
-                  <p className="text-xs text-slate-500 mb-1">Supplier: {p.supplier}</p>
-                )}
-
-                <p className="text-xs text-slate-500 mb-3 line-clamp-2">{p.tasting_notes ?? '—'}</p>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <CardStat label="Default price/kg" value={fmt(p.default_selling_price_usd ?? p.price_per_kg, 'currency')} />
-                  <CardStat label="Monthly stock" value={p.monthly_available_stock_kg != null ? fmt(p.monthly_available_stock_kg, 'stock') : '—'} />
-                  {isAdmin && (
-                    <>
-                      {p.landing_cost_per_kg_usd != null && (
-                        <CardStat label="Landing cost" value={fmt(p.landing_cost_per_kg_usd, 'currency')} />
-                      )}
-                      {p.min_selling_price_usd != null && (
-                        <CardStat label="Min price" value={fmt(p.min_selling_price_usd, 'currency')} />
-                      )}
-                      {p.gross_profit_margin != null && (
-                        <CardStat label="Margin" value={fmt(p.gross_profit_margin, 'pct')} />
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
-    </div>
+
+      {/* Edit/Create Modal */}
+      {isAdmin && (
+        <ProductEditModal
+          product={editProduct}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          onSaved={handleSaved}
+        />
+      )}
+    </>
   )
 }
 
@@ -280,7 +311,7 @@ function SortTh({
 function SortIndicator({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
     <span className={`text-[10px] leading-none ${active ? 'text-green-600' : 'text-slate-300'}`}>
-      {active ? (dir === 'asc' ? '▲' : '▼') : '⇅'}
+      {active ? (dir === 'asc' ? '\u25B2' : '\u25BC') : '\u21C5'}
     </span>
   )
 }
@@ -290,37 +321,5 @@ function Td({ children, right }: { children: React.ReactNode; right?: boolean })
     <td className={`px-3 py-2 text-slate-700 tabular-nums ${right ? 'text-right' : ''}`}>
       {children}
     </td>
-  )
-}
-
-function CardStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-slate-400 mb-0.5">{label}</p>
-      <p className="font-medium text-slate-800 truncate">{value}</p>
-    </div>
-  )
-}
-
-function TableIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="1" y="1" width="14" height="14" rx="1" />
-      <line x1="1" y1="5" x2="15" y2="5" />
-      <line x1="1" y1="9" x2="15" y2="9" />
-      <line x1="1" y1="13" x2="15" y2="13" />
-      <line x1="5" y1="1" x2="5" y2="15" />
-    </svg>
-  )
-}
-
-function GridIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="1" y="1" width="6" height="6" rx="1" />
-      <rect x="9" y="1" width="6" height="6" rx="1" />
-      <rect x="1" y="9" width="6" height="6" rx="1" />
-      <rect x="9" y="9" width="6" height="6" rx="1" />
-    </svg>
   )
 }

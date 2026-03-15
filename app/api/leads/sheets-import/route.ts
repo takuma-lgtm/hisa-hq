@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { GoogleAuth } from 'google-auth-library'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { normaliseUrl, normaliseName, parseBool, parseDate } from '@/lib/lead-utils'
 
 // ---------------------------------------------------------------------------
 // Configuration — tab list is driven by the LEADS_SHEET_TABS env var
@@ -25,37 +26,6 @@ const COLUMN_MAP = {
   contactPerson: 'Contact Person',
   dateContacted: 'Date Contacted',
 } as const
-
-// ---------------------------------------------------------------------------
-// Parsing helpers
-// ---------------------------------------------------------------------------
-
-function parseBool(raw: string | undefined): boolean | null {
-  if (!raw?.trim()) return null
-  return ['yes', 'true', '1', 'y'].includes(raw.toLowerCase().trim())
-}
-
-function parseDate(raw: string | undefined): string | null {
-  if (!raw?.trim()) return null
-  const d = new Date(raw.trim())
-  if (isNaN(d.getTime())) return null
-  return d.toISOString().slice(0, 10) // YYYY-MM-DD
-}
-
-/** Strip protocol, www, and trailing slashes for dedupe comparison. */
-function normaliseUrl(raw: string | undefined): string | null {
-  if (!raw?.trim()) return null
-  return raw
-    .toLowerCase()
-    .trim()
-    .replace(/^https?:\/\/(www\.)?/, '')
-    .replace(/\/+$/, '')
-}
-
-/** Lowercase + strip punctuation for cafe name fuzzy matching. */
-function normaliseName(s: string): string {
-  return s.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
-}
 
 // ---------------------------------------------------------------------------
 // Google Sheets fetch — same pattern as /api/products/sync

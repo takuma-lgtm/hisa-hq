@@ -28,7 +28,7 @@ Database
 Supabase (Postgres)
 
 External integrations
-Google Sheets API (Service Account)
+Google Sheets API (Service Account) — used for lead imports only
 
 Future integrations
 Stripe
@@ -56,10 +56,11 @@ Prefer:
 
 # Source of Truth
 
-Products → Google Sheets
-Leads → Google Sheets
+Products → Supabase (editable in CRM)
+Leads → Google Sheets (imported into CRM)
 Customers → Supabase
 Sales pipeline → Supabase
+CRM Settings → Supabase (crm_settings table)
 
 Flow:
 
@@ -67,7 +68,9 @@ Research → Google Sheets
 Import → CRM
 Manage → CRM
 
-Google Sheets is the research layer, not the CRM.
+Google Sheets is the research layer for leads, not the CRM.
+
+Products are fully managed inside the CRM. Google Sheets is no longer used for product management.
 
 ---
 
@@ -85,7 +88,7 @@ Google Sheets
 
 GOOGLE_SERVICE_ACCOUNT_KEY
 
-Product Master
+Product Master (legacy — no longer used for products)
 
 GOOGLE_SHEET_ID
 GOOGLE_SHEET_TAB
@@ -122,6 +125,16 @@ Example values:
 lead
 customer
 inactive
+
+Other key tables:
+
+products — product catalog with multi-currency pricing
+pricing_tiers — volume discount tiers per product
+crm_settings — key-value config (exchange rates, shipping, thresholds)
+opportunities — sales pipeline
+opportunity_proposals + opportunity_proposal_items — price proposals
+call_logs — structured call records
+sample_batches + sample_batch_items — sample tracking
 
 ---
 
@@ -172,6 +185,49 @@ Kanban pipeline board.
 
 ---
 
+# Lead Side Panel (Split-View)
+
+The /leads page uses a split-view layout.
+
+Clicking a lead row opens a 400px side panel on the right instead of navigating to /leads/[id].
+
+The table narrows to accommodate the panel.
+
+Panel sections:
+
+1. Header: cafe name, city, source badge, stage badge, Instagram link, website link
+2. Outreach stats: message count, first contacted, last messaged
+3. Message composer (reuses MessageComposer component)
+4. Message history (reuses OutreachTimeline component)
+5. Quick actions: Convert to Opportunity (when stage is replied or qualified)
+6. Footer: "Open Full Detail →" link to /leads/[id]
+
+Behavior:
+
+• Clicking a different row swaps panel content instantly
+• Clicking the same row or X closes the panel
+• Escape closes the panel
+• ArrowUp/ArrowDown navigates between leads while panel is open
+• Sending a message updates the table row immediately (local state, no page reload)
+
+The /leads/[id] detail page remains unchanged.
+
+It is used for enrichment, full notes editing, and the Convert to Opportunity flow.
+
+Key files:
+
+app/(dashboard)/leads/LeadSidePanel.tsx
+app/(dashboard)/leads/LeadsTable.tsx
+
+API routes used by the panel:
+
+GET /api/leads/[id]/messages
+POST /api/leads/[id]/messages
+PATCH /api/leads/[id]/messages/[logId]
+POST /api/leads/[id]/convert
+
+---
+
 # Import Deduplication Rules
 
 Lead import must prevent duplicates.
@@ -211,29 +267,120 @@ Always use a COLUMN_MAP.
 
 # Products System
 
-Products come from Google Sheets.
-
-Sheet:
-
-Product Master
+Products are fully managed inside the CRM. Google Sheets is no longer used for products.
 
 Products page:
 
 /products
 
-Products display:
+Table columns:
 
-external_name
-internal_name_eng
-internal_name_jpn
-supplier
-landing_cost
-margin
-stock
+Product (customer_facing_product_name + product_id)
+Internal JPN (name_internal_jpn)
+Supplier
+Type (product_type badge)
+Cost ¥/kg (matcha_cost_per_kg_jpy)
+Price $/kg (selling_price_usd)
+Min $ (min_price_usd)
+Margin (gross_profit_margin — color-coded badge)
+Stock/mo (monthly_available_stock_kg)
+Status (active/inactive)
 
-Products are read-only inside the CRM.
+Margin health badges:
 
-Google Sheets remains the source of truth.
+Green: margin > 25% AND gross profit > $330/kg
+Yellow: margin 15-25% OR gross profit $150-330/kg
+Red: margin < 15% OR gross profit < $150/kg
+
+Thresholds are read from crm_settings table (margin_alerts category).
+
+Products are editable via a modal (admin only).
+
+Row click → opens ProductEditModal with all fields.
+"Add Product" button → opens same modal in create mode.
+
+Multi-currency pricing:
+
+USD: selling_price_usd, min_price_usd
+GBP: selling_price_gbp, min_price_gbp
+EUR: selling_price_eur, min_price_eur
+
+Landing costs per market:
+
+us_landing_cost_per_kg_usd
+uk_landing_cost_per_kg_gbp
+eu_landing_cost_per_kg_eur
+
+Backward compatibility columns (kept in sync):
+
+landing_cost_per_kg_usd = us_landing_cost_per_kg_usd
+default_selling_price_usd = selling_price_usd
+min_selling_price_usd = min_price_usd
+price_per_kg = selling_price_usd
+
+Key files:
+
+app/(dashboard)/products/page.tsx
+app/(dashboard)/products/ProductsTable.tsx
+app/(dashboard)/products/ProductEditModal.tsx
+
+API routes:
+
+POST /api/products — create product (admin)
+PATCH /api/products/[id] — update product (admin)
+GET /api/products/[id]/tiers — get pricing tiers
+PUT /api/products/[id]/tiers — replace pricing tiers (admin)
+POST /api/products/import-master — CSV import (admin)
+
+---
+
+# Pricing Tiers
+
+Volume pricing is stored in the pricing_tiers table.
+
+Columns:
+
+tier_id (uuid PK)
+product_id (FK → products)
+currency (USD, GBP, EUR)
+tier_name (Standard, Gold, Platinum)
+min_volume_kg
+discount_pct
+price_per_kg
+
+Tiers are edited inside the ProductEditModal.
+
+PUT endpoint replaces all tiers for a product (delete + insert).
+
+---
+
+# CRM Settings
+
+Settings are stored in the crm_settings table.
+
+Settings page:
+
+/settings (admin only)
+
+Categories:
+
+exchange_rates — USD/JPY, USD/GBP, USD/EUR
+shipping — JP→US, JP→EU shipping costs per kg
+margin_alerts — red/yellow thresholds for profit and margin
+company — name, phone, email, warehouse addresses
+
+Each setting saves on blur via PATCH /api/settings.
+
+API routes:
+
+GET /api/settings — all settings (any role)
+PATCH /api/settings — update single setting (admin)
+
+Key files:
+
+app/(dashboard)/settings/page.tsx
+app/(dashboard)/settings/SettingsForm.tsx
+app/api/settings/route.ts
 
 ---
 
@@ -251,6 +398,8 @@ Naming pattern:
 002_products.sql
 003_customers.sql
 004_leads_v1.sql
+...
+011_products_pricing_overhaul.sql
 
 Rules:
 

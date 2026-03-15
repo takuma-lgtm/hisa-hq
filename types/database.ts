@@ -42,6 +42,7 @@ export type Profile               = Database['public']['Tables']['profiles']['Ro
 export type Customer              = Database['public']['Tables']['customers']['Row']
 export type Opportunity           = Database['public']['Tables']['opportunities']['Row']
 export type InstagramLog          = Database['public']['Tables']['instagram_logs']['Row']
+export type MessageChannel = 'instagram_dm' | 'email' | 'whatsapp'
 export type SampleBatch           = Database['public']['Tables']['sample_batches']['Row']
 export type SampleBatchItem       = Database['public']['Tables']['sample_batch_items']['Row']
 export type Product               = Database['public']['Tables']['products']['Row']
@@ -52,6 +53,17 @@ export type Notification          = Database['public']['Tables']['notifications'
 export type CallLog               = Database['public']['Tables']['call_logs']['Row']
 export type OpportunityProposal   = Database['public']['Tables']['opportunity_proposals']['Row']
 export type OpportunityProposalItem = Database['public']['Tables']['opportunity_proposal_items']['Row']
+export type PricingTier             = Database['public']['Tables']['pricing_tiers']['Row']
+export type CrmSetting              = Database['public']['Tables']['crm_settings']['Row']
+
+// Draft messages
+export type DraftMessage              = Database['public']['Tables']['draft_messages']['Row']
+
+// Inventory types
+export type WarehouseLocation       = Database['public']['Tables']['warehouse_locations']['Row']
+export type Sku                     = Database['public']['Tables']['skus']['Row']
+export type InventoryLevel          = Database['public']['Tables']['inventory_levels']['Row']
+export type InventoryTransaction    = Database['public']['Tables']['inventory_transactions']['Row']
 
 // JSONB payload shapes (legacy — new code uses normalized tables)
 export interface ProductSent {
@@ -84,6 +96,15 @@ export interface OpportunityFull extends Opportunity {
   handoff_profile: Pick<Profile, 'id' | 'name'> | null
 }
 
+export interface OpportunityTableRow extends Opportunity {
+  customer: Pick<Customer,
+    'customer_id' | 'cafe_name' | 'city' | 'country' | 'state' |
+    'contact_person' | 'phone' | 'email' | 'instagram_url' | 'instagram_handle' |
+    'address' | 'zip_code' | 'qualified_products' | 'qualified_volume_kg' | 'qualified_budget'
+  >
+  assigned_profile: Pick<Profile, 'id' | 'name' | 'role'> | null
+}
+
 export interface CallLogWithProfile extends CallLog {
   logged_by_profile: Pick<Profile, 'name'>
 }
@@ -96,6 +117,17 @@ export interface ProposalWithItems extends OpportunityProposal {
 
 export interface SampleBatchWithItems extends SampleBatch {
   items: SampleBatchItem[]
+}
+
+// Inventory joined types
+export type InventoryLevelWithDetails = InventoryLevel & {
+  sku: Pick<Sku, 'sku_name' | 'sku_type' | 'unit_cost_jpy' | 'product_id' | 'name_external_eng'>
+  warehouse: Pick<WarehouseLocation, 'name' | 'short_code'>
+}
+
+export type InventoryTransactionWithDetails = InventoryTransaction & {
+  sku: Pick<Sku, 'sku_name' | 'name_external_eng'>
+  warehouse: Pick<WarehouseLocation, 'name' | 'short_code'> | null
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +201,19 @@ export interface Database {
           last_imported_at: string | null
           lead_assigned_to: string | null
           notes: string | null
+          source_type: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_review_count: number | null
+          last_enriched_at: string | null
+          contact_title: string | null
+          linkedin_url: string | null
+          company_size: string | null
+          qualified_products: string | null
+          qualified_volume_kg: number | null
+          qualified_budget: string | null
+          qualified_samples_agreed: boolean
+          qualified_at: string | null
           created_at: string
           updated_at: string
         }
@@ -215,6 +260,19 @@ export interface Database {
           last_imported_at?: string | null
           lead_assigned_to?: string | null
           notes?: string | null
+          source_type?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
+          last_enriched_at?: string | null
+          contact_title?: string | null
+          linkedin_url?: string | null
+          company_size?: string | null
+          qualified_products?: string | null
+          qualified_volume_kg?: number | null
+          qualified_budget?: string | null
+          qualified_samples_agreed?: boolean
+          qualified_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -261,6 +319,19 @@ export interface Database {
           last_imported_at?: string | null
           lead_assigned_to?: string | null
           notes?: string | null
+          source_type?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
+          last_enriched_at?: string | null
+          contact_title?: string | null
+          linkedin_url?: string | null
+          company_size?: string | null
+          qualified_products?: string | null
+          qualified_volume_kg?: number | null
+          qualified_budget?: string | null
+          qualified_samples_agreed?: boolean
+          qualified_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -333,6 +404,7 @@ export interface Database {
           reply_received: string | null
           status: Database['public']['Enums']['instagram_status_enum']
           notes: string | null
+          channel: string
           created_at: string
         }
         Insert: {
@@ -342,6 +414,7 @@ export interface Database {
           reply_received?: string | null
           status?: Database['public']['Enums']['instagram_status_enum']
           notes?: string | null
+          channel?: string
           created_at?: string
         }
         Update: {
@@ -351,6 +424,7 @@ export interface Database {
           reply_received?: string | null
           status?: Database['public']['Enums']['instagram_status_enum']
           notes?: string | null
+          channel?: string
         }
         Relationships: []
       }
@@ -371,6 +445,12 @@ export interface Database {
           shipped_at: string | null
           delivered_at: string | null
           created_at: string
+          tracking_url: string | null
+          carrier_status: string | null
+          carrier_status_detail: string | null
+          estimated_delivery: string | null
+          last_tracked_at: string | null
+          auto_track_enabled: boolean
         }
         Insert: {
           batch_id?: string
@@ -388,6 +468,12 @@ export interface Database {
           shipped_at?: string | null
           delivered_at?: string | null
           created_at?: string
+          tracking_url?: string | null
+          carrier_status?: string | null
+          carrier_status_detail?: string | null
+          estimated_delivery?: string | null
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
         }
         Update: {
           batch_id?: string
@@ -404,6 +490,12 @@ export interface Database {
           ship_from?: string
           shipped_at?: string | null
           delivered_at?: string | null
+          tracking_url?: string | null
+          carrier_status?: string | null
+          carrier_status_detail?: string | null
+          estimated_delivery?: string | null
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
         }
         Relationships: []
       }
@@ -437,6 +529,47 @@ export interface Database {
         }
         Relationships: []
       }
+      draft_messages: {
+        Row: {
+          draft_id: string
+          customer_id: string
+          opportunity_id: string | null
+          batch_id: string | null
+          trigger_event: string
+          channel: string
+          message_text: string
+          status: 'pending' | 'sent' | 'dismissed'
+          created_at: string
+          sent_at: string | null
+          dismissed_at: string | null
+        }
+        Insert: {
+          draft_id?: string
+          customer_id: string
+          opportunity_id?: string | null
+          batch_id?: string | null
+          trigger_event: string
+          channel?: string
+          message_text: string
+          status?: 'pending' | 'sent' | 'dismissed'
+          created_at?: string
+          sent_at?: string | null
+          dismissed_at?: string | null
+        }
+        Update: {
+          draft_id?: string
+          customer_id?: string
+          opportunity_id?: string | null
+          batch_id?: string | null
+          trigger_event?: string
+          channel?: string
+          message_text?: string
+          status?: 'pending' | 'sent' | 'dismissed'
+          sent_at?: string | null
+          dismissed_at?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           product_id: string
@@ -456,6 +589,20 @@ export interface Database {
           product_guide_url: string | null
           active: boolean
           last_synced_at: string | null
+          // Migration 011 additions
+          date_added: string | null
+          name_internal_jpn: string | null
+          matcha_cost_per_kg_jpy: number | null
+          us_landing_cost_per_kg_usd: number | null
+          uk_landing_cost_per_kg_gbp: number | null
+          eu_landing_cost_per_kg_eur: number | null
+          selling_price_usd: number | null
+          min_price_usd: number | null
+          selling_price_gbp: number | null
+          min_price_gbp: number | null
+          selling_price_eur: number | null
+          min_price_eur: number | null
+          gross_profit_per_kg_usd: number | null
         }
         Insert: {
           product_id: string
@@ -475,6 +622,19 @@ export interface Database {
           product_guide_url?: string | null
           active?: boolean
           last_synced_at?: string | null
+          date_added?: string | null
+          name_internal_jpn?: string | null
+          matcha_cost_per_kg_jpy?: number | null
+          us_landing_cost_per_kg_usd?: number | null
+          uk_landing_cost_per_kg_gbp?: number | null
+          eu_landing_cost_per_kg_eur?: number | null
+          selling_price_usd?: number | null
+          min_price_usd?: number | null
+          selling_price_gbp?: number | null
+          min_price_gbp?: number | null
+          selling_price_eur?: number | null
+          min_price_eur?: number | null
+          gross_profit_per_kg_usd?: number | null
         }
         Update: {
           product_id?: string
@@ -494,6 +654,19 @@ export interface Database {
           product_guide_url?: string | null
           active?: boolean
           last_synced_at?: string | null
+          date_added?: string | null
+          name_internal_jpn?: string | null
+          matcha_cost_per_kg_jpy?: number | null
+          us_landing_cost_per_kg_usd?: number | null
+          uk_landing_cost_per_kg_gbp?: number | null
+          eu_landing_cost_per_kg_eur?: number | null
+          selling_price_usd?: number | null
+          min_price_usd?: number | null
+          selling_price_gbp?: number | null
+          min_price_gbp?: number | null
+          selling_price_eur?: number | null
+          min_price_eur?: number | null
+          gross_profit_per_kg_usd?: number | null
         }
         Relationships: []
       }
@@ -781,6 +954,280 @@ export interface Database {
           notes?: string | null
         }
         Relationships: []
+      }
+      pricing_tiers: {
+        Row: {
+          tier_id: string
+          product_id: string
+          currency: string
+          tier_name: string
+          min_volume_kg: number
+          discount_pct: number
+          price_per_kg: number
+          created_at: string
+        }
+        Insert: {
+          tier_id?: string
+          product_id: string
+          currency?: string
+          tier_name: string
+          min_volume_kg?: number
+          discount_pct?: number
+          price_per_kg: number
+          created_at?: string
+        }
+        Update: {
+          tier_id?: string
+          product_id?: string
+          currency?: string
+          tier_name?: string
+          min_volume_kg?: number
+          discount_pct?: number
+          price_per_kg?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'pricing_tiers_product_id_fkey'
+            columns: ['product_id']
+            referencedRelation: 'products'
+            referencedColumns: ['product_id']
+          },
+        ]
+      }
+      crm_settings: {
+        Row: {
+          key: string
+          value: string
+          label: string | null
+          category: string | null
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: string
+          label?: string | null
+          category?: string | null
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: string
+          label?: string | null
+          category?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      warehouse_locations: {
+        Row: {
+          warehouse_id: string
+          name: string
+          short_code: string
+          address: string | null
+          country: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          warehouse_id?: string
+          name: string
+          short_code: string
+          address?: string | null
+          country?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          warehouse_id?: string
+          name?: string
+          short_code?: string
+          address?: string | null
+          country?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      skus: {
+        Row: {
+          sku_id: string
+          sku_name: string
+          product_id: string | null
+          name_external_eng: string | null
+          name_internal_jpn: string | null
+          sku_type: string
+          unit_weight_kg: number
+          matcha_cost_per_kg_jpy: number | null
+          unit_cost_jpy: number | null
+          note: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          sku_id?: string
+          sku_name: string
+          product_id?: string | null
+          name_external_eng?: string | null
+          name_internal_jpn?: string | null
+          sku_type?: string
+          unit_weight_kg?: number
+          matcha_cost_per_kg_jpy?: number | null
+          unit_cost_jpy?: number | null
+          note?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          sku_id?: string
+          sku_name?: string
+          product_id?: string | null
+          name_external_eng?: string | null
+          name_internal_jpn?: string | null
+          sku_type?: string
+          unit_weight_kg?: number
+          matcha_cost_per_kg_jpy?: number | null
+          unit_cost_jpy?: number | null
+          note?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'skus_product_id_fkey'
+            columns: ['product_id']
+            referencedRelation: 'products'
+            referencedColumns: ['product_id']
+          },
+        ]
+      }
+      inventory_levels: {
+        Row: {
+          inventory_level_id: string
+          sku_id: string
+          warehouse_id: string
+          quantity: number
+          in_transit_qty: number
+          updated_at: string
+        }
+        Insert: {
+          inventory_level_id?: string
+          sku_id: string
+          warehouse_id: string
+          quantity?: number
+          in_transit_qty?: number
+          updated_at?: string
+        }
+        Update: {
+          inventory_level_id?: string
+          sku_id?: string
+          warehouse_id?: string
+          quantity?: number
+          in_transit_qty?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_levels_sku_id_fkey'
+            columns: ['sku_id']
+            referencedRelation: 'skus'
+            referencedColumns: ['sku_id']
+          },
+          {
+            foreignKeyName: 'inventory_levels_warehouse_id_fkey'
+            columns: ['warehouse_id']
+            referencedRelation: 'warehouse_locations'
+            referencedColumns: ['warehouse_id']
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          transaction_id: string
+          transaction_ref: string | null
+          date_received: string | null
+          date_shipped: string | null
+          item_type: string
+          movement_type: string
+          from_location: string | null
+          to_destination: string | null
+          sku_id: string
+          warehouse_affected: string | null
+          qty_change: number
+          carrier: string | null
+          delivery_status: string | null
+          tracking_dhl: string | null
+          tracking_fedex: string | null
+          tracking_usps: string | null
+          tracking_ups: string | null
+          note: string | null
+          customer_id: string | null
+          opportunity_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          transaction_id?: string
+          transaction_ref?: string | null
+          date_received?: string | null
+          date_shipped?: string | null
+          item_type?: string
+          movement_type: string
+          from_location?: string | null
+          to_destination?: string | null
+          sku_id: string
+          warehouse_affected?: string | null
+          qty_change: number
+          carrier?: string | null
+          delivery_status?: string | null
+          tracking_dhl?: string | null
+          tracking_fedex?: string | null
+          tracking_usps?: string | null
+          tracking_ups?: string | null
+          note?: string | null
+          customer_id?: string | null
+          opportunity_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          transaction_id?: string
+          transaction_ref?: string | null
+          date_received?: string | null
+          date_shipped?: string | null
+          item_type?: string
+          movement_type?: string
+          from_location?: string | null
+          to_destination?: string | null
+          sku_id?: string
+          warehouse_affected?: string | null
+          qty_change?: number
+          carrier?: string | null
+          delivery_status?: string | null
+          tracking_dhl?: string | null
+          tracking_fedex?: string | null
+          tracking_usps?: string | null
+          tracking_ups?: string | null
+          note?: string | null
+          customer_id?: string | null
+          opportunity_id?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_transactions_sku_id_fkey'
+            columns: ['sku_id']
+            referencedRelation: 'skus'
+            referencedColumns: ['sku_id']
+          },
+          {
+            foreignKeyName: 'inventory_transactions_warehouse_affected_fkey'
+            columns: ['warehouse_affected']
+            referencedRelation: 'warehouse_locations'
+            referencedColumns: ['warehouse_id']
+          },
+        ]
       }
     }
     Views: {

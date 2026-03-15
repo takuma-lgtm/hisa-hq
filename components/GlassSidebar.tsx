@@ -4,11 +4,12 @@ import {
   Menu,
   LayoutDashboard,
   KanbanSquare,
-  Users,
   RefreshCw,
+  Warehouse,
   Package,
   Inbox,
   LogOut,
+  Settings,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -29,9 +30,10 @@ const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
   { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ] as const
 
 const ROLE_LABELS: Record<UserRole, string> = {

@@ -16,7 +16,6 @@ import {
 import {
   LayoutDashboard,
   KanbanSquare,
-  Users,
   RefreshCw,
   Package,
   LogOut,
@@ -27,16 +26,9 @@ const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
   { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
 ] as const
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Admin',
-  closer: 'Closer',
-  lead_gen: 'Lead Gen',
-}
 
 interface SidebarProps {
   userName: string
@@ -158,13 +150,6 @@ function Logo() {
       <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 flex-shrink-0">
         <span className="text-white text-xs font-bold">H</span>
       </div>
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-sm font-semibold text-slate-800 whitespace-pre"
-      >
-        HISA Matcha
-      </motion.span>
     </Link>
   )
 }

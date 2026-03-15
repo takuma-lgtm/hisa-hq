@@ -94,3 +94,35 @@ export const CUSTOMER_STATUS_LABELS = {
   recurring_customer:   'Recurring',
   lost:                 'Lost',
 } as const
+
+// ---------------------------------------------------------------------------
+// Opportunities table page — subset of stages visible to closers
+// ---------------------------------------------------------------------------
+
+export const OPPORTUNITY_TABLE_STAGES: OpportunityStage[] = [
+  'sample_approved',
+  'samples_shipped',
+  'samples_delivered',
+  'quote_sent',
+  'deal_won',
+]
+
+export const OPPORTUNITY_STAGE_LABELS: Record<string, string> = {
+  sample_approved: 'Samples',
+  samples_shipped: 'Shipped',
+  samples_delivered: 'Delivered',
+  quote_sent: 'Quote Sent',
+  deal_won: 'Won',
+  disqualified: 'Disqualified',
+  lost: 'Lost',
+}
+
+export const OPPORTUNITY_STAGE_COLORS: Record<string, string> = {
+  sample_approved: 'bg-amber-50 text-amber-700',
+  samples_shipped: 'bg-blue-50 text-blue-700',
+  samples_delivered: 'bg-purple-50 text-purple-700',
+  quote_sent: 'bg-indigo-50 text-indigo-700',
+  deal_won: 'bg-green-50 text-green-700',
+  disqualified: 'bg-red-50 text-red-600',
+  lost: 'bg-slate-100 text-slate-500',
+}
