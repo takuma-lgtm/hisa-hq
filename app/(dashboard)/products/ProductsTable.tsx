@@ -147,6 +147,8 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
         next[idx] = updated
         return next
       }
+      // New product — reset sort so it appears at top
+      setSortKey(null)
       return [updated, ...prev]
     })
     setSelectedProductId(updated.product_id)
