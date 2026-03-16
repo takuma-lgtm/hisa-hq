@@ -1,4 +1,4 @@
-# HISA Matcha CRM — Claude System Guide
+# Hisa HQ — Claude System Guide
 
 This document defines the operational rules Claude Code must follow when modifying this repository.
 
@@ -10,7 +10,7 @@ The goal is to keep the system:
 • safe for production
 • easy to evolve
 
-This CRM is an internal operations tool, not a public SaaS.
+Hisa HQ is an internal operations tool, not a public SaaS.
 
 ---
 
@@ -29,16 +29,16 @@ Supabase (Postgres)
 
 External integrations
 Google Sheets API (Service Account) — used for lead imports only
+FedEx Tracking API — auto-tracking for sample shipments (toggle via crm_settings)
 
 Future integrations
 Stripe
-FedEx API
 
 ---
 
 # Architectural Principles
 
-The CRM is intentionally simple and centralized.
+Hisa HQ is intentionally simple and centralized.
 
 Avoid:
 
@@ -134,7 +134,8 @@ crm_settings — key-value config (exchange rates, shipping, thresholds)
 opportunities — sales pipeline
 opportunity_proposals + opportunity_proposal_items — price proposals
 call_logs — structured call records
-sample_batches + sample_batch_items — sample tracking
+sample_batches + sample_batch_items — sample tracking (includes FedEx tracking columns)
+draft_messages — auto-generated outreach drafts (triggered by tracking events, etc.)
 
 ---
 
@@ -368,6 +369,7 @@ exchange_rates — USD/JPY, USD/GBP, USD/EUR
 shipping — JP→US, JP→EU shipping costs per kg
 margin_alerts — red/yellow thresholds for profit and margin
 company — name, phone, email, warehouse addresses
+integrations — FedEx enabled flag, tracking poll interval
 
 Each setting saves on blur via PATCH /api/settings.
 
@@ -394,12 +396,15 @@ Location:
 
 Naming pattern:
 
-001_init.sql
-002_products.sql
-003_customers.sql
+001_initial_schema.sql
+002_rls_policies.sql
+003_schema_v2.sql
 004_leads_v1.sql
 ...
 011_products_pricing_overhaul.sql
+012_inventory_system.sql
+...
+014_fedex_tracking.sql
 
 Rules:
 
@@ -531,11 +536,9 @@ Claude must verify existing code first.
 
 Planned features:
 
-Lead pipeline board
-Opportunity tracking
-Customer order history
 Automated prospect discovery
 Sales analytics
+Customer portal
 
 Claude should design code to remain compatible with these features.
 
@@ -543,7 +546,7 @@ Claude should design code to remain compatible with these features.
 
 # Final Principle
 
-The CRM should always remain:
+Hisa HQ should always remain:
 
 • understandable by a single developer
 • deployable quickly
@@ -555,7 +558,7 @@ Simplicity is preferred over cleverness.
 
 # Screenshots
 
-Claude can take screenshots of the running CRM to visually verify UI changes.
+Claude can take screenshots of the running app to visually verify UI changes.
 
 Requires: `pnpm dev` running on localhost:3000
 
