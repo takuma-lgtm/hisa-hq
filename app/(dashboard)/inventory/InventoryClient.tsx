@@ -1,16 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
-import { Plus, ArrowRightLeft, Wrench } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Plus, ArrowRightLeft, Wrench, Truck, ChevronDown } from 'lucide-react'
 import type { InventoryLevelWithDetails } from '@/types/database'
 import StockLevelsTable from './StockLevelsTable'
-import TransactionLogTable from './TransactionLogTable'
+import USOrdersDrawer from './USOrdersDrawer'
 import RecordInboundModal from './RecordInboundModal'
 import RecordTransferModal from './RecordTransferModal'
 import ManualAdjustmentModal from './ManualAdjustmentModal'
-
-type Tab = 'stock' | 'log'
+import CreateUSOrderModal from './CreateUSOrderModal'
 
 interface Sku {
   sku_id: string
@@ -19,6 +17,7 @@ interface Sku {
   name_external_eng: string | null
   sku_type: string
   is_active: boolean
+  product: { supplier: string | null } | null
 }
 
 interface Warehouse {
@@ -44,108 +43,91 @@ export default function InventoryClient({
   isAdmin,
   canWrite,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('stock')
   const [showInbound, setShowInbound] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
   const [showAdjust, setShowAdjust] = useState(false)
+  const [showNewOrder, setShowNewOrder] = useState(false)
+  const [showUSOrders, setShowUSOrders] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
 
-  // Compute summary stats from levels
-  const uniqueSkus = new Set(levels.map(l => l.sku_id))
-  const totalUnits = levels.reduce((sum, l) => sum + l.quantity + l.in_transit_qty, 0)
-  const totalValue = levels.reduce((sum, l) => {
-    const unitCost = (l.sku as InventoryLevelWithDetails['sku'])?.unit_cost_jpy ?? 0
-    return sum + (l.quantity + l.in_transit_qty) * unitCost / exchangeRate
-  }, 0)
+  useEffect(() => {
+    if (!moreOpen) return
+    function handleClick(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [moreOpen])
 
   return (
     <>
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Inventory</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {uniqueSkus.size} SKUs across {warehouses.length} warehouses
-          </p>
+          <h1 className="text-2xl font-serif text-slate-900">Inventory</h1>
         </div>
-        {canWrite && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {canWrite && (
             <button
               onClick={() => setShowInbound(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              Record Inbound
+              Record Inventory
             </button>
+          )}
+          <div className="relative" ref={moreRef}>
             <button
-              onClick={() => setShowTransfer(true)}
+              onClick={() => setMoreOpen(!moreOpen)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              Record Transfer
+              More
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
-            {isAdmin && (
-              <button
-                onClick={() => setShowAdjust(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                Adjust
-              </button>
+            {moreOpen && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-20">
+                <button
+                  onClick={() => { setShowUSOrders(true); setMoreOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  File US Order
+                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => { setShowTransfer(true); setMoreOpen(false) }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    Transfer
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() => { setShowAdjust(true); setMoreOpen(false) }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                    Adjust
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 px-6 py-4 border-b border-slate-200 shrink-0">
-        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3">
-          <p className="text-xs text-slate-500">Total SKUs</p>
-          <p className="text-xl font-semibold text-slate-900 mt-1">{uniqueSkus.size}</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3">
-          <p className="text-xs text-slate-500">Total Units</p>
-          <p className="text-xl font-semibold text-slate-900 mt-1">{totalUnits.toLocaleString()}</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3">
-          <p className="text-xs text-slate-500">Total Value</p>
-          <p className="text-xl font-semibold text-slate-900 mt-1">
-            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-6 px-6 border-b border-slate-200 shrink-0">
-        <button
-          className={cn(
-            'pb-2.5 pt-3 text-sm font-medium border-b-2 transition-colors',
-            tab === 'stock'
-              ? 'border-green-600 text-green-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700',
-          )}
-          onClick={() => setTab('stock')}
-        >
-          Stock Levels
-        </button>
-        <button
-          className={cn(
-            'pb-2.5 pt-3 text-sm font-medium border-b-2 transition-colors',
-            tab === 'log'
-              ? 'border-green-600 text-green-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700',
-          )}
-          onClick={() => setTab('log')}
-        >
-          Transaction Log
-        </button>
-      </div>
+      {/* Stock levels table — always visible */}
+      <StockLevelsTable levels={levels} exchangeRate={exchangeRate} isAdmin={isAdmin} />
 
-      {/* Tab content */}
-      {tab === 'stock' ? (
-        <StockLevelsTable levels={levels} exchangeRate={exchangeRate} />
-      ) : (
-        <TransactionLogTable />
-      )}
+      {/* US Orders drawer */}
+      <USOrdersDrawer
+        open={showUSOrders}
+        onClose={() => setShowUSOrders(false)}
+        onNewOrder={() => { setShowUSOrders(false); setShowNewOrder(true) }}
+        canWrite={canWrite}
+      />
 
       {/* Modals */}
       {showInbound && (
@@ -166,6 +148,12 @@ export default function InventoryClient({
           skus={skus}
           warehouses={warehouses}
           onClose={() => setShowAdjust(false)}
+        />
+      )}
+      {showNewOrder && (
+        <CreateUSOrderModal
+          skus={skus}
+          onClose={() => setShowNewOrder(false)}
         />
       )}
     </>

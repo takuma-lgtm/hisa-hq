@@ -38,6 +38,7 @@ export default function ProductSidePanel({
   const [localProduct, setLocalProduct] = useState<Product | null>(product)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local state from prop
     setLocalProduct(product)
     setPanelTab('profile')
   }, [product])
@@ -174,6 +175,7 @@ function InlineField({
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync draft from prop
     setDraft(value ?? '')
     setEditing(false)
   }, [value])
@@ -288,6 +290,7 @@ function InlineNumericField({
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync draft from prop
     setDraft(value != null ? String(value) : '')
     setEditing(false)
   }, [value])
@@ -408,6 +411,7 @@ function ContactCheckbox({
 }) {
   const [checked, setChecked] = useState(product.should_contact_producer)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync from prop
   useEffect(() => setChecked(product.should_contact_producer), [product.should_contact_producer])
 
   async function toggle(val: boolean) {
@@ -452,6 +456,7 @@ function PricingTab({
   const [tiersLoading, setTiersLoading] = useState(true)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch pattern
     setTiersLoading(true)
     fetch(`/api/products/${encodeURIComponent(product.product_id)}/tiers`)
       .then((r) => r.json())
@@ -557,6 +562,8 @@ function CreateForm({
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suppliers, setSuppliers] = useState<{ supplier_id: string; supplier_name: string; supplier_name_en: string | null }[]>([])
+  const [selectedSupplierId, setSelectedSupplierId] = useState('')
   const [productId, setProductId] = useState(isCompetitor ? 'COMP-' : '')
   const [name, setName] = useState('')
   const [producer, setProducer] = useState('')
@@ -572,9 +579,22 @@ function CreateForm({
   const [texture, setTexture] = useState('')
   const [bestFor, setBestFor] = useState('')
 
+  useEffect(() => {
+    if (isCompetitor) return
+    fetch('/api/suppliers')
+      .then((r) => r.json())
+      .then((d) => {
+        const sorted = (d.suppliers ?? []).sort((a: { supplier_name_en: string | null; supplier_name: string }, b: { supplier_name_en: string | null; supplier_name: string }) =>
+          (a.supplier_name_en || a.supplier_name).localeCompare(b.supplier_name_en || b.supplier_name),
+        )
+        setSuppliers(sorted)
+      })
+      .catch(() => {})
+  }, [isCompetitor])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!productId.trim() || !name.trim()) return
+    if (!productId.trim() || !name.trim() || (!isCompetitor && !selectedSupplierId)) return
     setSaving(true)
     setError(null)
 
@@ -600,6 +620,11 @@ function CreateForm({
       body.competitor_url = producerUrl.trim() || null
       body.introduced_by = introducedBy.trim() || null
     }
+    if (selectedSupplierId) {
+      const selected = suppliers.find((s) => s.supplier_id === selectedSupplierId)
+      body.primary_supplier_id = selectedSupplierId
+      body.supplier = selected?.supplier_name_en || selected?.supplier_name || null
+    }
 
     try {
       const res = await fetch('/api/products', {
@@ -610,6 +635,13 @@ function CreateForm({
 
       if (res.ok) {
         const created = await res.json()
+        if (selectedSupplierId) {
+          await fetch(`/api/suppliers/${selectedSupplierId}/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: created.product_id, is_primary: true }),
+          }).catch(() => {})
+        }
         onCreated(created)
       } else {
         const data = await res.json().catch(() => null)
@@ -638,7 +670,7 @@ function CreateForm({
         <div className="flex gap-2">
           <button
             type="submit"
-            disabled={saving || !productId.trim() || !name.trim()}
+            disabled={saving || !productId.trim() || !name.trim() || (!isCompetitor && !selectedSupplierId)}
             className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Creating...' : 'Create'}
@@ -664,6 +696,24 @@ function CreateForm({
           <label className="text-[10px] text-slate-500 uppercase tracking-wide">Product Name *</label>
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} required />
         </div>
+
+        {!isCompetitor && (
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-wide">Supplier *</label>
+            <select
+              value={selectedSupplierId}
+              onChange={(e) => setSelectedSupplierId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">— None —</option>
+              {suppliers.map((s) => (
+                <option key={s.supplier_id} value={s.supplier_id}>
+                  {s.supplier_name_en || s.supplier_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {isCompetitor && (
           <>

@@ -23,12 +23,12 @@ export default async function InventoryPage() {
       .from('inventory_levels')
       .select(`
         *,
-        sku:skus(sku_name, sku_type, unit_cost_jpy, product_id, name_external_eng, unit_weight_kg),
+        sku:skus(sku_name, sku_type, unit_cost_jpy, product_id, name_external_eng, unit_weight_kg, low_stock_threshold),
         warehouse:warehouse_locations(name, short_code)
       `),
     service
       .from('skus')
-      .select('sku_id, sku_name, product_id, name_external_eng, sku_type, is_active')
+      .select('sku_id, sku_name, product_id, name_external_eng, sku_type, is_active, product:products(supplier)')
       .eq('is_active', true)
       .order('sku_name'),
     service

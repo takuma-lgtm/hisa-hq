@@ -37,7 +37,7 @@ export default async function ActiveSuppliersPage() {
   return (
     <div className="flex-1 overflow-auto">
       <div className="px-6 py-4 border-b border-slate-200">
-        <h1 className="text-lg font-semibold text-slate-900">Active Suppliers</h1>
+        <h1 className="text-2xl font-serif text-slate-900">Active Suppliers</h1>
         <p className="text-xs text-slate-500 mt-0.5">
           {(suppliers ?? []).length} active supplier{(suppliers ?? []).length !== 1 ? 's' : ''}
         </p>

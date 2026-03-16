@@ -35,6 +35,7 @@ export default async function LeadsPage() {
       .in('customer_id', customerIds)
       .order('created_at', { ascending: false })
 
+    // eslint-disable-next-line react-hooks/purity -- server component, computed once
     const now = Date.now()
     const byCustomer = new Map<string, { dates: string[]; latestStatus: string | null }>()
     for (const log of logs ?? []) {
@@ -62,7 +63,7 @@ export default async function LeadsPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Leads</h1>
+          <h1 className="text-2xl font-serif text-slate-900">Leads</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {leads?.length ?? 0} leads in CRM
           </p>

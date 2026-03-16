@@ -19,6 +19,7 @@ export default function AddSupplierModal() {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
+  const [nameEn, setNameEn] = useState('')
   const [prefecture, setPrefecture] = useState('')
   const [businessType, setBusinessType] = useState<SupplierBusinessType | ''>('')
   const [source, setSource] = useState('')
@@ -34,6 +35,7 @@ export default function AddSupplierModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           supplier_name: name.trim(),
+          supplier_name_en: nameEn.trim() || null,
           prefecture: prefecture.trim() || null,
           business_type: businessType || null,
           source: source.trim() || null,
@@ -43,6 +45,7 @@ export default function AddSupplierModal() {
       if (res.ok) {
         setOpen(false)
         setName('')
+        setNameEn('')
         setPrefecture('')
         setBusinessType('')
         setSource('')
@@ -75,6 +78,17 @@ export default function AddSupplierModal() {
               onChange={(e) => setName(e.target.value)}
               className="w-full border border-slate-200 rounded px-3 py-2 text-sm"
               placeholder="例: 南山園"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">English Name *</label>
+            <input
+              type="text"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              className="w-full border border-slate-200 rounded px-3 py-2 text-sm"
+              placeholder="e.g. Nanzanen"
               required
             />
           </div>
@@ -126,7 +140,7 @@ export default function AddSupplierModal() {
             </Button>
             <Button
               type="submit"
-              disabled={saving || !name.trim()}
+              disabled={saving || !name.trim() || !nameEn.trim()}
               className="bg-green-700 hover:bg-green-800 text-white"
             >
               {saving ? '保存中...' : '追加'}

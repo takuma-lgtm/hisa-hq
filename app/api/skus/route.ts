@@ -34,8 +34,8 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+  if (profile?.role !== 'admin' && profile?.role !== 'closer') {
+    return NextResponse.json({ error: 'Admin or closer access required' }, { status: 403 })
   }
 
   const body = await request.json()

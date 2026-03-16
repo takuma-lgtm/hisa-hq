@@ -29,6 +29,7 @@ interface Props {
 
 export default function RecurringGrid({ customers, allOrders }: Props) {
   const [filter, setFilter] = useState<'all' | 'reorder'>('all')
+  // eslint-disable-next-line react-hooks/purity -- stable within a single render
   const now = Date.now()
   const twentyFiveDays = 25 * 24 * 60 * 60 * 1000
 
@@ -85,7 +86,8 @@ export default function RecurringGrid({ customers, allOrders }: Props) {
             : 'No recurring customers yet. Mark an opportunity as Won to add one.'}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           {filtered.map((c) => (
             <Link
               key={c.customer_id}
@@ -158,6 +160,17 @@ export default function RecurringGrid({ customers, allOrders }: Props) {
             </Link>
           ))}
         </div>
+        {filtered.length > 0 && filtered.length < 3 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm text-slate-400">
+              {filtered.length} recurring {filtered.length === 1 ? 'customer' : 'customers'} so far.
+            </p>
+            <p className="text-xs text-slate-300 mt-1">
+              Win more deals to grow your recurring customer base.
+            </p>
+          </div>
+        )}
+        </>
       )}
     </>
   )

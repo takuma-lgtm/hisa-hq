@@ -33,7 +33,7 @@ insert into auth.users (
   email_change_token_new,
   email_change
 ) values
-  -- Nina — Lead Generation
+  -- Nina — Admin (originally lead_gen, promoted to admin)
   (
     '11111111-1111-1111-1111-111111111111',
     '00000000-0000-0000-0000-000000000000',
@@ -41,14 +41,14 @@ insert into auth.users (
     '$2b$10$/BweeX4Zeeqv5St/VcMNLeCJM99GS3X/u4YHwKeKUIMU0O84aEme6',
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"name":"Nina","role":"lead_gen"}'::jsonb,
+    '{"name":"Nina","role":"admin"}'::jsonb,
     'authenticated',
     'authenticated',
     now(),
     now(),
     '', '', '', ''
   ),
-  -- Tatsumi — Closer
+  -- Tatsumi — Admin (originally closer, promoted to admin)
   (
     '22222222-2222-2222-2222-222222222222',
     '00000000-0000-0000-0000-000000000000',
@@ -56,7 +56,7 @@ insert into auth.users (
     '$2b$10$/BweeX4Zeeqv5St/VcMNLeCJM99GS3X/u4YHwKeKUIMU0O84aEme6',
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"name":"Tatsumi","role":"closer"}'::jsonb,
+    '{"name":"Tatsumi","role":"admin"}'::jsonb,
     'authenticated',
     'authenticated',
     now(),

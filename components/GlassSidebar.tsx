@@ -28,17 +28,41 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
-  { href: '/suppliers', label: 'Suppliers', icon: Sprout, roles: ['admin', 'closer'] },
-  { href: '/active-suppliers', label: 'Active Suppliers', icon: Handshake, roles: ['admin', 'closer'] },
-  { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
-] as const
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; roles: readonly string[] }
+type NavSection = { label: string; items: NavItem[] }
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: '',
+    items: [
+      { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
+    ],
+  },
+  {
+    label: 'Acquiring Customers',
+    items: [
+      { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
+      { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
+      { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
+    ],
+  },
+  {
+    label: 'Acquiring Supply',
+    items: [
+      { href: '/suppliers', label: 'Leads', icon: Sprout, roles: ['admin', 'closer'] },
+      { href: '/active-suppliers', label: 'Active', icon: Handshake, roles: ['admin', 'closer'] },
+    ],
+  },
+  {
+    label: 'Inventory & Products',
+    items: [
+      { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
+      { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
+    ],
+  },
+]
+
+const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -59,9 +83,14 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
   const router = useRouter()
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const visibleItems = NAV_ITEMS.filter((item) =>
-    (item.roles as readonly string[]).includes(userRole),
-  )
+  const visibleSections = NAV_SECTIONS
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.roles.includes(userRole)),
+    }))
+    .filter((section) => section.items.length > 0)
+
+  const showSettings = SETTINGS_ITEM.roles.includes(userRole)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -107,23 +136,44 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
         </div>
 
         {/* Nav */}
-        <nav className={cn('flex-1 py-4 space-y-1', isExpanded ? 'px-3' : 'px-0 flex flex-col items-center')}>
-          {visibleItems.map(({ href, label, icon: Icon }) => {
-            const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+        <nav className={cn('flex-1 py-4', isExpanded ? 'px-3' : 'px-0 flex flex-col items-center')}>
+          {visibleSections.map((section, sectionIdx) => {
+            const visibleItems = section.items
             return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'glass-sidebar-link overflow-hidden whitespace-nowrap',
-                  isActive && 'active',
-                  !isExpanded && 'w-10 h-10 justify-center p-0 rounded-lg',
+              <div key={section.label || `section-${sectionIdx}`} className={sectionIdx > 0 ? 'mt-4' : ''}>
+                {sectionIdx > 0 && (
+                  isExpanded ? (
+                    <div className="border-t border-dashed border-[#0A0A0A]/10 mb-2" />
+                  ) : (
+                    <div className="mx-2 border-t border-[#0A0A0A]/20 mb-2" />
+                  )
                 )}
-                title={!isExpanded ? label : undefined}
-              >
-                <Icon size={18} className="shrink-0" />
-                {isExpanded && <span>{label}</span>}
-              </Link>
+                {isExpanded && section.label && (
+                  <p className="text-[11px] tracking-widest text-[#0A0A0A]/45 uppercase font-medium px-2 mb-1">
+                    {section.label}
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {visibleItems.map(({ href, label, icon: Icon }) => {
+                    const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={cn(
+                          'glass-sidebar-link overflow-hidden whitespace-nowrap',
+                          isActive && 'active',
+                          !isExpanded && 'w-10 h-10 justify-center p-0 rounded-lg',
+                        )}
+                        title={!isExpanded ? label : undefined}
+                      >
+                        <Icon size={18} className="shrink-0" />
+                        {isExpanded && <span>{label}</span>}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
             )
           })}
         </nav>
@@ -143,6 +193,20 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
               </div>
             )}
           </div>
+          {showSettings && (
+            <Link
+              href="/settings"
+              className={cn(
+                'glass-sidebar-link overflow-hidden whitespace-nowrap mb-1',
+                pathname.startsWith('/settings') && 'active',
+                !isExpanded && 'w-10 h-10 justify-center p-0 rounded-lg',
+              )}
+              title={!isExpanded ? 'Settings' : undefined}
+            >
+              <Settings size={18} className="shrink-0" />
+              {isExpanded && <span>Settings</span>}
+            </Link>
+          )}
           <button
             onClick={handleSignOut}
             className={cn(
@@ -171,20 +235,34 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
               <SheetTitle>{brandSmall}</SheetTitle>
             </SheetHeader>
             <div className="flex flex-col flex-1 overflow-y-auto">
-              <nav className="flex-1 px-3 py-4 space-y-1">
-                {visibleItems.map(({ href, label, icon: Icon }) => {
-                  const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={cn('glass-sidebar-link', isActive && 'active')}
-                    >
-                      <Icon size={18} />
-                      <span>{label}</span>
-                    </Link>
-                  )
-                })}
+              <nav className="flex-1 px-3 py-4">
+                {visibleSections.map((section, sectionIdx) => (
+                  <div key={section.label || `section-${sectionIdx}`} className={sectionIdx > 0 ? 'mt-4' : ''}>
+                    {sectionIdx > 0 && (
+                      <div className="border-t border-dashed border-[#0A0A0A]/10 mb-2" />
+                    )}
+                    {section.label && (
+                      <p className="text-[11px] tracking-widest text-[#0A0A0A]/45 uppercase font-medium px-2 mb-1">
+                        {section.label}
+                      </p>
+                    )}
+                    <div className="space-y-1">
+                      {section.items.map(({ href, label, icon: Icon }) => {
+                        const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            className={cn('glass-sidebar-link', isActive && 'active')}
+                          >
+                            <Icon size={18} />
+                            <span>{label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </nav>
               <div className="px-3 py-4 border-t border-[#0A0A0A]/8">
                 <div className="flex items-center gap-3 mb-3">
@@ -198,6 +276,15 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
                     <p className="text-xs text-[#0A0A0A]/40">{ROLE_LABELS[userRole]}</p>
                   </div>
                 </div>
+                {showSettings && (
+                  <Link
+                    href="/settings"
+                    className={cn('glass-sidebar-link mb-1', pathname.startsWith('/settings') && 'active')}
+                  >
+                    <Settings size={18} />
+                    <span>Settings</span>
+                  </Link>
+                )}
                 <button
                   onClick={handleSignOut}
                   className="glass-sidebar-link w-full text-[#0A0A0A]/40 hover:text-red-500"

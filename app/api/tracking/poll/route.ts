@@ -142,5 +142,99 @@ export async function POST(request: Request) {
     }
   }
 
+  // ---- Track inventory transactions with FedEx tracking ----
+  const { data: invTxns } = await service
+    .from('inventory_transactions')
+    .select('transaction_id, tracking_fedex, delivery_status, movement_type, sku_id, warehouse_affected, qty_change')
+    .not('tracking_fedex', 'is', null)
+    .eq('auto_track_enabled', true)
+    .neq('delivery_status', 'delivered')
+    .or(`last_tracked_at.is.null,last_tracked_at.lt.${staleThreshold}`)
+
+  for (const txn of invTxns ?? []) {
+    try {
+      const result = await trackPackage(txn.tracking_fedex!)
+      tracked++
+
+      await service
+        .from('inventory_transactions')
+        .update({
+          delivery_status: result.status === 'delivered' ? 'delivered' : 'in_transit',
+          last_tracked_at: new Date().toISOString(),
+        })
+        .eq('transaction_id', txn.transaction_id)
+
+      // If a JP→US transfer is delivered, auto-receive
+      if (result.status === 'delivered' && txn.movement_type === 'transfer_jp_us_out') {
+        const { data: usWarehouse } = await service
+          .from('warehouse_locations')
+          .select('warehouse_id')
+          .eq('short_code', 'US')
+          .single()
+
+        if (usWarehouse) {
+          const { data: level } = await service
+            .from('inventory_levels')
+            .select('inventory_level_id, quantity, in_transit_qty')
+            .eq('sku_id', txn.sku_id)
+            .eq('warehouse_id', usWarehouse.warehouse_id)
+            .single()
+
+          if (level && level.in_transit_qty > 0) {
+            const receiveQty = Math.abs(txn.qty_change ?? 0)
+            const actualReceive = Math.min(receiveQty, level.in_transit_qty)
+            await service
+              .from('inventory_levels')
+              .update({
+                quantity: level.quantity + actualReceive,
+                in_transit_qty: level.in_transit_qty - actualReceive,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('inventory_level_id', level.inventory_level_id)
+            delivered++
+          }
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      errors.push(`inv-txn-${txn.transaction_id}: ${msg}`)
+    }
+  }
+
+  // ---- Track US outbound orders with FedEx tracking ----
+  const { data: usOrders } = await service
+    .from('us_outbound_orders')
+    .select('order_id, tracking_number, delivery_status')
+    .not('tracking_number', 'is', null)
+    .eq('auto_track_enabled', true)
+    .neq('delivery_status', 'delivered')
+    .or(`last_tracked_at.is.null,last_tracked_at.lt.${staleThreshold}`)
+
+  for (const order of usOrders ?? []) {
+    try {
+      const result = await trackPackage(order.tracking_number!)
+      tracked++
+
+      const updates: Record<string, unknown> = {
+        delivery_status: result.status === 'delivered' ? 'delivered' : 'in_transit',
+        last_tracked_at: new Date().toISOString(),
+      }
+
+      if (result.status === 'delivered') {
+        updates.status = 'delivered'
+        updates.date_delivered = result.actualDelivery?.split('T')[0] ?? new Date().toISOString().split('T')[0]
+        delivered++
+      }
+
+      await service
+        .from('us_outbound_orders')
+        .update(updates)
+        .eq('order_id', order.order_id)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      errors.push(`us-order-${order.order_id}: ${msg}`)
+    }
+  }
+
   return NextResponse.json({ tracked, delivered, errors })
 }

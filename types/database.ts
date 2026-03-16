@@ -93,6 +93,8 @@ export type WarehouseLocation       = Database['public']['Tables']['warehouse_lo
 export type Sku                     = Database['public']['Tables']['skus']['Row']
 export type InventoryLevel          = Database['public']['Tables']['inventory_levels']['Row']
 export type InventoryTransaction    = Database['public']['Tables']['inventory_transactions']['Row']
+export type USOutboundOrder         = Database['public']['Tables']['us_outbound_orders']['Row']
+export type USOutboundOrderItem     = Database['public']['Tables']['us_outbound_order_items']['Row']
 
 // Supplier types
 export type Supplier               = Database['public']['Tables']['suppliers']['Row']
@@ -1333,6 +1335,9 @@ export interface Database {
           unit_cost_jpy: number | null
           note: string | null
           is_active: boolean
+          low_stock_threshold: number | null
+          reorder_supplier_id: string | null
+          reorder_note: string | null
           created_at: string
         }
         Insert: {
@@ -1347,6 +1352,9 @@ export interface Database {
           unit_cost_jpy?: number | null
           note?: string | null
           is_active?: boolean
+          low_stock_threshold?: number | null
+          reorder_supplier_id?: string | null
+          reorder_note?: string | null
           created_at?: string
         }
         Update: {
@@ -1361,6 +1369,9 @@ export interface Database {
           unit_cost_jpy?: number | null
           note?: string | null
           is_active?: boolean
+          low_stock_threshold?: number | null
+          reorder_supplier_id?: string | null
+          reorder_note?: string | null
           created_at?: string
         }
         Relationships: [
@@ -1436,6 +1447,8 @@ export interface Database {
           opportunity_id: string | null
           created_by: string | null
           created_at: string
+          last_tracked_at: string | null
+          auto_track_enabled: boolean
         }
         Insert: {
           transaction_id?: string
@@ -1460,6 +1473,8 @@ export interface Database {
           opportunity_id?: string | null
           created_by?: string | null
           created_at?: string
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
         }
         Update: {
           transaction_id?: string
@@ -1484,6 +1499,8 @@ export interface Database {
           opportunity_id?: string | null
           created_by?: string | null
           created_at?: string
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
         }
         Relationships: [
           {
@@ -1497,6 +1514,142 @@ export interface Database {
             columns: ['warehouse_affected']
             referencedRelation: 'warehouse_locations'
             referencedColumns: ['warehouse_id']
+          },
+        ]
+      }
+      us_outbound_orders: {
+        Row: {
+          order_id: string
+          order_number: string
+          customer_id: string | null
+          customer_name: string
+          status: string
+          ship_to_name: string | null
+          ship_to_address: string | null
+          ship_to_city: string | null
+          ship_to_state: string | null
+          ship_to_zip: string | null
+          ship_to_country: string | null
+          date_shipped_from_jp: string | null
+          date_received_us: string | null
+          date_shipped: string | null
+          date_delivered: string | null
+          carrier: string | null
+          tracking_number: string | null
+          tracking_url: string | null
+          delivery_status: string | null
+          last_tracked_at: string | null
+          auto_track_enabled: boolean
+          shipping_cost_usd: number | null
+          total_item_value_usd: number | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          order_id?: string
+          order_number: string
+          customer_id?: string | null
+          customer_name: string
+          status?: string
+          ship_to_name?: string | null
+          ship_to_address?: string | null
+          ship_to_city?: string | null
+          ship_to_state?: string | null
+          ship_to_zip?: string | null
+          ship_to_country?: string | null
+          date_shipped_from_jp?: string | null
+          date_received_us?: string | null
+          date_shipped?: string | null
+          date_delivered?: string | null
+          carrier?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          delivery_status?: string | null
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
+          shipping_cost_usd?: number | null
+          total_item_value_usd?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          order_id?: string
+          order_number?: string
+          customer_id?: string | null
+          customer_name?: string
+          status?: string
+          ship_to_name?: string | null
+          ship_to_address?: string | null
+          ship_to_city?: string | null
+          ship_to_state?: string | null
+          ship_to_zip?: string | null
+          ship_to_country?: string | null
+          date_shipped_from_jp?: string | null
+          date_received_us?: string | null
+          date_shipped?: string | null
+          date_delivered?: string | null
+          carrier?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
+          delivery_status?: string | null
+          last_tracked_at?: string | null
+          auto_track_enabled?: boolean
+          shipping_cost_usd?: number | null
+          total_item_value_usd?: number | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      us_outbound_order_items: {
+        Row: {
+          item_id: string
+          order_id: string
+          sku_id: string
+          sku_name: string
+          product_description: string | null
+          quantity: number
+          unit_value_usd: number | null
+          subtotal_usd: number | null
+        }
+        Insert: {
+          item_id?: string
+          order_id: string
+          sku_id: string
+          sku_name: string
+          product_description?: string | null
+          quantity: number
+          unit_value_usd?: number | null
+          subtotal_usd?: number | null
+        }
+        Update: {
+          item_id?: string
+          order_id?: string
+          sku_id?: string
+          sku_name?: string
+          product_description?: string | null
+          quantity?: number
+          unit_value_usd?: number | null
+          subtotal_usd?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'us_outbound_order_items_order_id_fkey'
+            columns: ['order_id']
+            referencedRelation: 'us_outbound_orders'
+            referencedColumns: ['order_id']
+          },
+          {
+            foreignKeyName: 'us_outbound_order_items_sku_id_fkey'
+            columns: ['sku_id']
+            referencedRelation: 'skus'
+            referencedColumns: ['sku_id']
           },
         ]
       }

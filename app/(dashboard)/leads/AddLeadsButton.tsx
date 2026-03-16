@@ -1,28 +1,31 @@
 'use client'
 
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import {
-  PopoverRoot,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover'
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import AddLeadsPanel from './AddLeadsPanel'
 
 export default function AddLeadsButton() {
+  const [open, setOpen] = useState(false)
+
   return (
-    <PopoverRoot className="z-50">
-      <PopoverTrigger
-        variant="default"
-        className="bg-green-700 hover:bg-green-800 text-white"
-      >
-        <span className="inline-flex items-center gap-1.5">
-          <Plus className="w-3.5 h-3.5" />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-green-700 hover:bg-green-800 text-white">
+          <Plus className="w-3.5 h-3.5 mr-1.5" />
           Add Leads
-        </span>
-      </PopoverTrigger>
-      <PopoverContent className="right-0 top-full mt-2 w-[780px] max-h-[80vh] overflow-auto bg-white border border-slate-200 shadow-xl">
-        <AddLeadsPanel />
-      </PopoverContent>
-    </PopoverRoot>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-auto p-0">
+        <DialogTitle className="sr-only">Add Leads</DialogTitle>
+        <AddLeadsPanel onClose={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
   )
 }

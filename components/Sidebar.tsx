@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -75,28 +75,32 @@ function SidebarContent({ userName, userRole }: SidebarProps) {
           {visibleItems.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
-              <SidebarLink
-                key={href}
-                link={{
-                  label,
-                  href,
-                  icon: (
-                    <Icon
-                      size={18}
-                      className={cn(
-                        'flex-shrink-0',
-                        isActive ? 'text-green-700' : 'text-slate-400',
-                      )}
-                    />
-                  ),
-                }}
-                className={cn(
-                  'rounded-lg px-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-green-50 text-green-800'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+              <React.Fragment key={href}>
+                {href === '/leads' && (
+                  <div className="h-px bg-slate-200 my-2" />
                 )}
-              />
+                <SidebarLink
+                  link={{
+                    label,
+                    href,
+                    icon: (
+                      <Icon
+                        size={18}
+                        className={cn(
+                          'flex-shrink-0',
+                          isActive ? 'text-green-700' : 'text-slate-400',
+                        )}
+                      />
+                    ),
+                  }}
+                  className={cn(
+                    'rounded-lg px-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-green-50 text-green-800'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                  )}
+                />
+              </React.Fragment>
             )
           })}
         </div>

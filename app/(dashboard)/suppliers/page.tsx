@@ -12,7 +12,7 @@ export default async function SuppliersPage() {
 
   const [{ data: profile }, { data: suppliers }, { data: profiles }, { data: comms }] = await Promise.all([
     service.from('profiles').select('role').eq('id', user.id).single(),
-    service.from('suppliers').select('*').order('created_at', { ascending: false }),
+    service.from('suppliers').select('*').neq('stage', 'deal_established').order('created_at', { ascending: false }),
     service.from('profiles').select('id, name, role, created_at'),
     service.from('supplier_communications').select('supplier_id'),
   ])
@@ -30,9 +30,9 @@ export default async function SuppliersPage() {
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Suppliers</h1>
+          <h1 className="text-2xl font-serif text-slate-900">Supplier Leads</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            {(suppliers ?? []).length} suppliers in pipeline
+            {(suppliers ?? []).length} supplier leads in pipeline
           </p>
         </div>
         {canEdit && <AddSupplierModal />}

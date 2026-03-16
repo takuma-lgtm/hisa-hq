@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronRight, ChevronDown } from 'lucide-react'
 import type { InventoryLevelWithDetails } from '@/types/database'
+import SKUDetailExpansion from './SKUDetailExpansion'
 
 interface Props {
   levels: InventoryLevelWithDetails[]
   exchangeRate: number
+  isAdmin?: boolean
 }
 
 interface PivotedRow {
@@ -21,20 +23,51 @@ interface PivotedRow {
   in_transit: number
   total: number
   value_usd: number
+  low_stock_threshold: number | null
 }
 
-type SortKey = 'sku_name' | 'sku_type' | 'jp_stock' | 'us_stock' | 'in_transit' | 'total' | 'value_usd'
+interface ProductGroup {
+  product_id: string
+  product_name: string | null
+  skus: PivotedRow[]
+  sku_types: string[]
+  jp_stock: number
+  us_stock: number
+  in_transit: number
+  total: number
+  value_usd: number
+  worst_status: 'out' | 'low' | 'ok'
+}
+
+type SortKey = 'product_id' | 'jp_stock' | 'us_stock' | 'in_transit' | 'total' | 'value_usd'
 type SortDir = 'asc' | 'desc'
+
+function variantLabel(skuName: string, productId: string | null): string {
+  if (!productId) return skuName
+  const prefix = productId + '_'
+  if (skuName.startsWith(prefix)) {
+    return skuName.slice(prefix.length).replace(/_/g, ' ')
+  }
+  return skuName
+}
+
+function getSkuStatus(total: number, threshold: number | null): 'out' | 'low' | 'ok' {
+  if (total === 0) return 'out'
+  const limit = threshold ?? 5
+  if (total < limit) return 'low'
+  return 'ok'
+}
 
 export default function StockLevelsTable({ levels, exchangeRate }: Props) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [stockFilter, setStockFilter] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [sortKey, setSortKey] = useState<SortKey | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [sortKey, setSortKey] = useState<SortKey | null>('total')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
+  const [expandedSkuId, setExpandedSkuId] = useState<string | null>(null)
 
-  // Pivot levels by SKU — one row per SKU showing JP + US + In Transit
+  // Pivot levels by SKU
   const pivoted = useMemo(() => {
     const map = new Map<string, PivotedRow>()
 
@@ -71,6 +104,7 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
           in_transit: transit,
           total,
           value_usd: total * (sku.unit_cost_jpy ?? 0) / exchangeRate,
+          low_stock_threshold: (sku as Record<string, unknown>).low_stock_threshold as number | null,
         })
       }
     }
@@ -78,20 +112,25 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
     return Array.from(map.values())
   }, [levels, exchangeRate])
 
-  function handleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }
+  // Available SKU types (derived from data)
+  const availableTypes = useMemo(() => {
+    const order = ['Product', 'Sample', 'Retail', 'Cans']
+    const types = new Set(pivoted.map(r => r.sku_type))
+    return Array.from(types).sort((a, b) => (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b)))
+  }, [pivoted])
 
-  const filtered = useMemo(() => {
+  // Group by product_id, apply filters
+  const groups = useMemo(() => {
     const q = search.toLowerCase()
-    let rows = pivoted.filter(row => {
-      if (typeFilter && row.sku_type !== typeFilter) return false
-      if (stockFilter === 'low' && row.total >= 5) return false
+
+    // Filter individual SKUs first
+    const filteredSkus = pivoted.filter(row => {
+      if (typeFilter === 'Retail' && row.sku_type !== 'Retail' && row.sku_type !== 'Cans') return false
+      if (typeFilter && typeFilter !== 'Retail' && row.sku_type !== typeFilter) return false
+      if (stockFilter === 'low') {
+        const threshold = row.low_stock_threshold ?? 5
+        if (row.total >= threshold) return false
+      }
       if (stockFilter === 'out' && row.total !== 0) return false
       if (q) {
         const hay = [row.sku_name, row.product_name, row.product_id].filter(Boolean).join(' ').toLowerCase()
@@ -100,8 +139,45 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       return true
     })
 
+    // Group by product_id
+    const groupMap = new Map<string, PivotedRow[]>()
+    for (const row of filteredSkus) {
+      const key = row.product_id || row.sku_name
+      const existing = groupMap.get(key)
+      if (existing) {
+        existing.push(row)
+      } else {
+        groupMap.set(key, [row])
+      }
+    }
+
+    // Build ProductGroup array
+    let result: ProductGroup[] = []
+    for (const [productId, skus] of groupMap) {
+      // Sort children by total desc
+      skus.sort((a, b) => b.total - a.total)
+
+      const typeOrder = ['Product', 'Sample', 'Retail', 'Cans']
+      const types = [...new Set(skus.map(s => s.sku_type))].sort((a, b) =>
+        (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b))
+      )
+      result.push({
+        product_id: productId,
+        product_name: skus[0].product_name,
+        skus,
+        sku_types: types,
+        jp_stock: skus.reduce((s, r) => s + r.jp_stock, 0),
+        us_stock: skus.reduce((s, r) => s + r.us_stock, 0),
+        in_transit: skus.reduce((s, r) => s + r.in_transit, 0),
+        total: skus.reduce((s, r) => s + r.total, 0),
+        value_usd: skus.reduce((s, r) => s + r.value_usd, 0),
+        worst_status: getSkuStatus(skus.reduce((s, r) => s + r.total, 0), null),
+      })
+    }
+
+    // Sort groups
     if (sortKey) {
-      rows = [...rows].sort((a, b) => {
+      result = result.sort((a, b) => {
         const av = a[sortKey]
         const bv = b[sortKey]
         if (av == null && bv == null) return 0
@@ -112,13 +188,26 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       })
     }
 
-    return rows
+    return result
   }, [pivoted, search, typeFilter, stockFilter, sortKey, sortDir])
 
-  function statusBadge(total: number) {
-    if (total === 0) return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500">Out</span>
-    if (total < 5) return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-red-50 text-red-600">Low</span>
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  function statusBadgeFromStatus(status: 'out' | 'low' | 'ok') {
+    if (status === 'out') return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500">Out</span>
+    if (status === 'low') return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-red-50 text-red-600">Low</span>
     return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-50 text-green-600">OK</span>
+  }
+
+  function statusBadge(total: number, threshold: number | null) {
+    return statusBadgeFromStatus(getSkuStatus(total, threshold))
   }
 
   function typeBadge(type: string) {
@@ -126,6 +215,7 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       Product: 'bg-green-50 text-green-700',
       Sample: 'bg-amber-50 text-amber-700',
       Retail: 'bg-blue-50 text-blue-700',
+      Cans: 'bg-purple-50 text-purple-700',
     }
     return (
       <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${colors[type] || 'bg-slate-50 text-slate-600'}`}>
@@ -134,18 +224,51 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
     )
   }
 
-  const SortTh = ({ label, k, className }: { label: string; k: SortKey; className?: string }) => (
-    <th
-      className={`px-4 py-2 text-left text-xs font-medium text-slate-500 cursor-pointer hover:bg-slate-100 select-none ${className || ''}`}
-      onClick={() => handleSort(k)}
-    >
-      {label}
-      {sortKey === k && (sortDir === 'asc' ? ' ↑' : ' ↓')}
-    </th>
-  )
+  const colCount = 7
+
+  function renderSortTh(label: string, k: SortKey, className?: string) {
+    const isActive = sortKey === k
+    return (
+      <th
+        key={k}
+        className={`px-4 py-2 text-xs font-medium cursor-pointer hover:bg-slate-100 select-none ${isActive ? 'text-green-700 bg-green-50/50' : 'text-slate-500'} ${className || 'text-left'}`}
+        onClick={() => handleSort(k)}
+      >
+        <span className={`inline-flex items-center gap-1 ${className?.includes('text-center') ? 'justify-center w-full' : ''}`}>
+          {label}
+          {isActive ? (
+            <span className="text-green-600">{sortDir === 'asc' ? '▲' : '▼'}</span>
+          ) : (
+            <span className="text-slate-300 opacity-0 group-hover:opacity-100">▲</span>
+          )}
+        </span>
+      </th>
+    )
+  }
+
+  function toggleProduct(productId: string) {
+    setExpandedProducts(prev => {
+      const next = new Set(prev)
+      if (next.has(productId)) {
+        next.delete(productId)
+      } else {
+        next.add(productId)
+      }
+      return next
+    })
+  }
+
+  function toggleSku(skuId: string) {
+    setExpandedSkuId(expandedSkuId === skuId ? null : skuId)
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Hint */}
+      <div className="flex items-center gap-2 px-6 py-2 bg-slate-50 border-b border-slate-200 shrink-0">
+        <p className="text-xs text-slate-400">Click a product to see SKU variants, then click a variant for transaction history</p>
+      </div>
+
       {/* Filter bar */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-200 shrink-0">
         <div className="relative flex-1 max-w-sm">
@@ -159,8 +282,8 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
           />
         </div>
 
-        {/* Type filter pills */}
-        {['', 'Product', 'Sample', 'Retail'].map(t => (
+        {/* Type filter pills — derived from in-stock types */}
+        {['', ...availableTypes].map(t => (
           <button
             key={t}
             onClick={() => setTypeFilter(t)}
@@ -174,89 +297,223 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
           </button>
         ))}
 
-        {/* Stock filter */}
-        <div className="relative ml-auto">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-              showFilters || stockFilter
-                ? 'border-green-500 bg-green-50 text-green-700'
+        {/* Stock filter — cycles on click */}
+        <button
+          onClick={() => setStockFilter(f => f === '' ? 'low' : f === 'low' ? 'out' : '')}
+          className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+            stockFilter === 'low'
+              ? 'border-amber-500 bg-amber-50 text-amber-700'
+              : stockFilter === 'out'
+                ? 'border-red-500 bg-red-50 text-red-700'
                 : 'border-slate-200 text-slate-600'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Stock
-          </button>
-          {showFilters && (
-            <>
-              <div className="fixed inset-0 z-20" onClick={() => setShowFilters(false)} />
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-slate-200 rounded-lg shadow-lg z-30 p-2">
-                {[
-                  { value: '', label: 'All Stock' },
-                  { value: 'low', label: 'Low Stock (< 5)' },
-                  { value: 'out', label: 'Out of Stock' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setStockFilter(opt.value); setShowFilters(false) }}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded ${
-                      stockFilter === opt.value ? 'bg-green-50 text-green-700' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          {stockFilter === 'low' ? 'Low Stock' : stockFilter === 'out' ? 'Out of Stock' : 'All Stock'}
+        </button>
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto">
-        <table className="w-full text-sm border-collapse">
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '8%' }} />
+          </colgroup>
           <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
             <tr>
-              <SortTh label="SKU" k="sku_name" />
-              <th className="px-4 py-2 text-left text-xs font-medium text-slate-500">Product</th>
-              <SortTh label="Type" k="sku_type" />
-              <SortTh label="JP Stock" k="jp_stock" className="text-right" />
-              <SortTh label="US Stock" k="us_stock" className="text-right" />
-              <SortTh label="In Transit" k="in_transit" className="text-right" />
-              <SortTh label="Total" k="total" className="text-right" />
-              <SortTh label="Value ($)" k="value_usd" className="text-right" />
-              <th className="px-4 py-2 text-center text-xs font-medium text-slate-500">Status</th>
+              {renderSortTh("Product", "product_id")}
+              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Type</th>
+              {renderSortTh("JP", "jp_stock", "text-center")}
+              {renderSortTh("US", "us_stock", "text-center")}
+              {renderSortTh("In Transit (JP→US)", "in_transit", "text-center")}
+              {renderSortTh("Total", "total", "text-center")}
+              {renderSortTh("Value ($)", "value_usd", "text-center")}
+              <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Status</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {groups.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-slate-400 text-sm">
+                <td colSpan={colCount + 1} className="px-4 py-12 text-center text-slate-400 text-sm">
                   No inventory items found.
                 </td>
               </tr>
             ) : (
-              filtered.map(row => (
-                <tr key={row.sku_id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-2.5 font-medium text-slate-900">{row.sku_name}</td>
-                  <td className="px-4 py-2.5 text-slate-600">
-                    {row.product_name || row.product_id || '—'}
-                  </td>
-                  <td className="px-4 py-2.5">{typeBadge(row.sku_type)}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-slate-700">{row.jp_stock}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-slate-700">{row.us_stock}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-slate-500">{row.in_transit || '—'}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums font-medium text-slate-900">{row.total}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-slate-600">
-                    ${row.value_usd.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">{statusBadge(row.total)}</td>
-                </tr>
-              ))
+              groups.map(group => {
+                const isProductExpanded = expandedProducts.has(group.product_id)
+                return (
+                  <ProductGroupRows
+                    key={group.product_id}
+                    group={group}
+                    isProductExpanded={isProductExpanded}
+                    expandedSkuId={expandedSkuId}
+                    colCount={colCount}
+                    onToggleProduct={() => toggleProduct(group.product_id)}
+                    onToggleSku={toggleSku}
+                    statusBadge={statusBadge}
+                    statusBadgeFromStatus={statusBadgeFromStatus}
+                    typeBadge={typeBadge}
+                  />
+                )
+              })
             )}
           </tbody>
         </table>
       </div>
     </div>
+  )
+}
+
+// ── Product group rows ──────────────────────────────────────────────────────
+
+function ProductGroupRows({
+  group,
+  isProductExpanded,
+  expandedSkuId,
+  colCount,
+  onToggleProduct,
+  onToggleSku,
+  statusBadge,
+  statusBadgeFromStatus,
+  typeBadge,
+}: {
+  group: ProductGroup
+  isProductExpanded: boolean
+  expandedSkuId: string | null
+  colCount: number
+  onToggleProduct: () => void
+  onToggleSku: (skuId: string) => void
+  statusBadge: (total: number, threshold: number | null) => React.ReactNode
+  statusBadgeFromStatus: (status: 'out' | 'low' | 'ok') => React.ReactNode
+  typeBadge: (type: string) => React.ReactNode
+}) {
+  return (
+    <>
+      {/* Product parent row */}
+      <tr
+        className={`border-b border-slate-200 hover:bg-slate-50 cursor-pointer ${isProductExpanded ? 'bg-green-50/30' : ''}`}
+        onClick={onToggleProduct}
+      >
+        <td className="pl-3 pr-2 py-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 shrink-0">
+              {isProductExpanded
+                ? <ChevronDown className="w-4 h-4 text-green-600" />
+                : <ChevronRight className="w-4 h-4" />
+              }
+            </span>
+            <div>
+              <span className="font-semibold text-slate-900">{group.product_id}</span>
+              {group.product_name && (
+                <span className="block text-xs text-slate-400 mt-0.5">{group.product_name}</span>
+              )}
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex gap-1 flex-wrap">
+            {group.sku_types.map(t => (
+              <span key={t}>{typeBadge(t)}</span>
+            ))}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-700">{group.jp_stock}</td>
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-700">{group.us_stock}</td>
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap text-slate-500">{group.in_transit || '—'}</td>
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-bold text-slate-900">{group.total}</td>
+        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-600">
+          ${group.value_usd.toFixed(2)}
+        </td>
+        <td className="px-4 py-3 text-center">{statusBadgeFromStatus(group.worst_status)}</td>
+      </tr>
+
+      {/* Child SKU rows */}
+      {isProductExpanded && group.skus.map((sku, i) => {
+        const isLast = i === group.skus.length - 1
+        const isSkuExpanded = expandedSkuId === sku.sku_id
+        const label = variantLabel(sku.sku_name, sku.product_id)
+
+        return (
+          <SkuChildRows
+            key={sku.sku_id}
+            sku={sku}
+            label={label}
+            isLast={isLast}
+            isSkuExpanded={isSkuExpanded}
+            colCount={colCount}
+            onToggleSku={() => onToggleSku(sku.sku_id)}
+            statusBadge={statusBadge}
+            typeBadge={typeBadge}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+// ── Child SKU rows ──────────────────────────────────────────────────────────
+
+function SkuChildRows({
+  sku,
+  label,
+  isLast,
+  isSkuExpanded,
+  colCount,
+  onToggleSku,
+  statusBadge,
+  typeBadge,
+}: {
+  sku: PivotedRow
+  label: string
+  isLast: boolean
+  isSkuExpanded: boolean
+  colCount: number
+  onToggleSku: () => void
+  statusBadge: (total: number, threshold: number | null) => React.ReactNode
+  typeBadge: (type: string) => React.ReactNode
+}) {
+  return (
+    <>
+      <tr
+        className={`border-b border-slate-100 hover:bg-slate-50 cursor-pointer bg-white ${isSkuExpanded ? 'bg-slate-50' : ''}`}
+        onClick={onToggleSku}
+      >
+        <td className="pl-8 pr-2 py-2 text-slate-700">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-slate-300 shrink-0">
+              {isSkuExpanded
+                ? <ChevronDown className="w-3.5 h-3.5 text-green-500" />
+                : <ChevronRight className="w-3.5 h-3.5" />
+              }
+            </span>
+            <span className="font-medium">{label}</span>
+            <span className="text-xs text-slate-400">{sku.sku_name}</span>
+          </span>
+        </td>
+        <td className="px-4 py-2">{typeBadge(sku.sku_type)}</td>
+        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.jp_stock}</td>
+        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.us_stock}</td>
+        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-400">{sku.in_transit || '—'}</td>
+        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap font-medium text-slate-800">{sku.total}</td>
+        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-500">
+          ${sku.value_usd.toFixed(2)}
+        </td>
+        <td className="px-4 py-2 text-center">{statusBadge(sku.total, sku.low_stock_threshold)}</td>
+      </tr>
+      {isSkuExpanded && (
+        <tr>
+          <td colSpan={colCount + 1} className="p-0">
+            <SKUDetailExpansion skuId={sku.sku_id} skuName={sku.sku_name} />
+          </td>
+        </tr>
+      )}
+    </>
   )
 }

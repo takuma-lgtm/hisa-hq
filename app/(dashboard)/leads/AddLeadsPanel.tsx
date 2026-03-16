@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { AlertTriangle, CheckCircle, Loader2, MapPin } from 'lucide-react'
 import { detectRegion, parseBool } from '@/lib/lead-utils'
-import { usePopover } from '@/components/ui/popover'
 import MapsSearchPanel from './MapsSearchPanel'
 import ManualLeadForm from './ManualLeadForm'
 
@@ -99,8 +98,7 @@ async function checkDuplicates(rows: ParsedRow[]): Promise<boolean[]> {
 
 type Tab = 'paste' | 'maps' | 'manual'
 
-export default function AddLeadsPanel() {
-  const { closePopover } = usePopover()
+export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('paste')
   const [rawText, setRawText] = useState('')
   const [rows, setRows] = useState<ParsedRow[]>([])
@@ -385,7 +383,7 @@ export default function AddLeadsPanel() {
       {/* Footer */}
       <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-200 shrink-0">
         <button
-          onClick={closePopover}
+          onClick={onClose}
           className="text-sm text-slate-600 hover:text-slate-800 px-3 py-1.5"
         >
           Cancel

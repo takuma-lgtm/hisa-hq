@@ -21,6 +21,7 @@ export default function TastingLogTab({ productId, isAdmin }: Props) {
     setLoading(false)
   }, [productId])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch pattern
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
   async function handleDelete(logId: string) {

@@ -275,8 +275,8 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-y-auto">
-          <table className="w-full text-sm">
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-sm zebra-table">
             <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 <th
@@ -359,6 +359,16 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
               )}
             </tbody>
           </table>
+          {filtered.length > 0 && filtered.length < 5 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-sm text-slate-400">
+                {filtered.length} active {filtered.length === 1 ? 'deal' : 'deals'} in your pipeline.
+              </p>
+              <p className="text-xs text-slate-300 mt-1">
+                Convert more leads from the Leads page to grow your pipeline.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { OPPORTUNITY_TABLE_STAGES } from '@/lib/constants'
+import { Clock, AlertTriangle, CircleAlert, Package, Sprout, MessageCircle, Phone, FileText, Gift } from 'lucide-react'
 import DashboardMetrics from './components/DashboardMetrics'
 import DashboardNeedsAttention, { type AttentionItem } from './components/DashboardNeedsAttention'
 import DashboardPipeline from './components/DashboardPipeline'
@@ -207,7 +208,7 @@ export default async function DashboardPage() {
   for (const lead of staleLeads ?? []) {
     const days = Math.floor((now.getTime() - new Date(lead.date_contacted ?? '').getTime()) / 86400000)
     attentionItems.push({
-      icon: '☐',
+      icon: <Clock className="w-4 h-4 text-amber-500" />,
       label: `${lead.cafe_name} — no reply in ${days} days`,
       href: '/leads',
     })
@@ -217,7 +218,7 @@ export default async function DashboardPage() {
     const cust = opp.customers as Record<string, unknown> | null
     const days = Math.floor((now.getTime() - new Date(opp.updated_at).getTime()) / 86400000)
     attentionItems.push({
-      icon: '☐',
+      icon: <Clock className="w-4 h-4 text-amber-500" />,
       label: `${cust?.cafe_name ?? 'Unknown'} — in stage for ${days} days`,
       href: `/opportunities?selected=${opp.opportunity_id}`,
     })
@@ -225,7 +226,7 @@ export default async function DashboardPage() {
 
   for (const [, sku] of lowStockSkus.slice(0, 3)) {
     attentionItems.push({
-      icon: '⚠',
+      icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
       label: `${sku.name} — ${sku.total} units remaining`,
       href: '/inventory',
     })
@@ -233,7 +234,7 @@ export default async function DashboardPage() {
 
   for (const [, sku] of outOfStockSkus.slice(0, 2)) {
     attentionItems.push({
-      icon: '🔴',
+      icon: <CircleAlert className="w-4 h-4 text-red-500" />,
       label: `${sku.name} — out of stock`,
       href: '/inventory',
     })
@@ -241,7 +242,7 @@ export default async function DashboardPage() {
 
   for (const batch of inTransitBatches ?? []) {
     attentionItems.push({
-      icon: '📦',
+      icon: <Package className="w-4 h-4 text-blue-500" />,
       label: `Samples (${batch.tracking_number}) — in transit from ${batch.ship_from}`,
       href: '/inventory',
     })
@@ -251,7 +252,7 @@ export default async function DashboardPage() {
   const awaitingSamples = (supplierData ?? []).filter((s) => s.sample_status === 'waiting')
   if (awaitingSamples.length > 0) {
     attentionItems.push({
-      icon: '🍵',
+      icon: <Sprout className="w-4 h-4 text-green-600" />,
       label: `${awaitingSamples.length} supplier(s) awaiting samples`,
       href: '/suppliers',
     })
@@ -262,7 +263,7 @@ export default async function DashboardPage() {
 
   for (const msg of recentMessages ?? []) {
     activities.push({
-      icon: '💬',
+      icon: <MessageCircle className="w-4 h-4 text-blue-500" />,
       description: msg.message_sent ? `Sent: "${msg.message_sent.slice(0, 50)}${msg.message_sent.length > 50 ? '…' : ''}"` : 'Message sent',
       timestamp: msg.created_at,
       href: '/leads',
@@ -272,7 +273,7 @@ export default async function DashboardPage() {
   for (const tx of recentTransactions ?? []) {
     const sku = tx.sku as Record<string, unknown> | null
     activities.push({
-      icon: '📦',
+      icon: <Package className="w-4 h-4 text-slate-500" />,
       description: `${tx.transaction_ref ?? tx.movement_type}: ${tx.qty_change} × ${sku?.sku_name ?? 'SKU'}`,
       timestamp: tx.created_at,
       href: '/inventory',
@@ -281,7 +282,7 @@ export default async function DashboardPage() {
 
   for (const call of recentCalls ?? []) {
     activities.push({
-      icon: '📞',
+      icon: <Phone className="w-4 h-4 text-green-500" />,
       description: `${call.call_type} call logged`,
       timestamp: call.created_at,
       href: '/opportunities',
@@ -290,7 +291,7 @@ export default async function DashboardPage() {
 
   for (const prop of recentProposals ?? []) {
     activities.push({
-      icon: '📄',
+      icon: <FileText className="w-4 h-4 text-slate-500" />,
       description: `Quote created via ${prop.sent_via}`,
       timestamp: prop.created_at,
       href: '/opportunities',
@@ -299,7 +300,7 @@ export default async function DashboardPage() {
 
   for (const batch of recentSamples ?? []) {
     activities.push({
-      icon: '🎁',
+      icon: <Gift className="w-4 h-4 text-purple-500" />,
       description: `Samples shipped from ${batch.ship_from}`,
       timestamp: batch.created_at,
       href: '/opportunities',
@@ -309,8 +310,12 @@ export default async function DashboardPage() {
   activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   return (
-    <div className="flex-1 overflow-auto p-6 space-y-6">
-      <h1 className="text-lg font-semibold text-slate-900">Dashboard</h1>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-200 shrink-0">
+        <h1 className="text-2xl font-serif text-slate-900">Dashboard</h1>
+        <p className="text-xs text-slate-500 mt-0.5">Overview of your operations</p>
+      </div>
+      <div className="flex-1 overflow-auto p-6 space-y-6">
       <DashboardMetrics cards={metricCards} />
       <DashboardNeedsAttention items={attentionItems.slice(0, 10)} />
       <DashboardPipeline
@@ -319,6 +324,7 @@ export default async function DashboardPage() {
         lostThisMonth={lostThisMonth ?? 0}
       />
       <DashboardActivity activities={activities.slice(0, 10)} />
+      </div>
     </div>
   )
 }

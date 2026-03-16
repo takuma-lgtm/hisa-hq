@@ -64,6 +64,14 @@ export async function POST(request: Request) {
 
   const service = createServiceClient()
 
+  // Auto-generate transaction ref for inbound
+  if (body.movement_type === 'inbound_supplier_jp' && !body.transaction_ref) {
+    const year = new Date().getFullYear()
+    const { data: seqData } = await service.rpc('nextval_text', { seq_name: 'inbound_po_seq' })
+    const seq = String(seqData ?? '1').padStart(3, '0')
+    body.transaction_ref = `PO-${year}-${seq}`
+  }
+
   // Insert the transaction
   const { data: txn, error: txnErr } = await service
     .from('inventory_transactions')

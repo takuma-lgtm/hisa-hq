@@ -5,7 +5,11 @@ import Link from 'next/link'
 import type { Supplier, SupplierStage, SupplierBusinessType, SampleTrackingStatus, SupplierMessageTemplate } from '@/types/database'
 import { SUPPLIER_STAGE_LABELS, SUPPLIER_BUSINESS_TYPE_LABELS, SAMPLE_STATUS_LABELS } from '@/types/database'
 import { SUPPLIER_STAGE_COLORS, SUPPLIER_STAGE_ORDER, SUPPLIER_BUSINESS_TYPE_COLORS, SAMPLE_STATUS_COLORS } from '@/lib/constants'
-import { X, ExternalLink, Phone, Mail, Send } from 'lucide-react'
+import { X, ExternalLink, Send } from 'lucide-react'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface CommLog {
   comm_id: string
@@ -37,6 +41,105 @@ const CHANNEL_OPTIONS = [
   { value: 'trade_show', label: '展示会' },
 ]
 
+const BUSINESS_TYPE_OPTIONS: { value: SupplierBusinessType; label: string }[] = [
+  { value: 'tea_wholesaler', label: SUPPLIER_BUSINESS_TYPE_LABELS.tea_wholesaler },
+  { value: 'farm', label: SUPPLIER_BUSINESS_TYPE_LABELS.farm },
+  { value: 'broker', label: SUPPLIER_BUSINESS_TYPE_LABELS.broker },
+  { value: 'other', label: SUPPLIER_BUSINESS_TYPE_LABELS.other },
+]
+
+const SAMPLE_STATUS_OPTIONS: { value: SampleTrackingStatus; label: string }[] = [
+  { value: 'none', label: SAMPLE_STATUS_LABELS.none },
+  { value: 'waiting', label: SAMPLE_STATUS_LABELS.waiting },
+  { value: 'received', label: SAMPLE_STATUS_LABELS.received },
+  { value: 'evaluated', label: SAMPLE_STATUS_LABELS.evaluated },
+]
+
+// ---------------------------------------------------------------------------
+// Inline Editable Field (click to edit, save on blur/Enter, Escape cancels)
+// ---------------------------------------------------------------------------
+
+function InlineField({
+  label,
+  value,
+  field,
+  canEdit,
+  onSave,
+}: {
+  label: string
+  value: string | null
+  field: string
+  canEdit: boolean
+  onSave: (field: string, value: string | null) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync draft from prop
+    setDraft(value ?? '')
+    setEditing(false)
+  }, [value])
+
+  async function save() {
+    const trimmed = draft.trim() || null
+    if (trimmed === (value ?? null)) {
+      setEditing(false)
+      return
+    }
+    setSaving(true)
+    await onSave(field, trimmed)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="flex items-center gap-2 py-0.5">
+        <span className="text-[10px] text-slate-400 w-16 shrink-0">{label}</span>
+        <span className="text-xs text-slate-600 truncate">{value || '—'}</span>
+      </div>
+    )
+  }
+
+  if (!editing) {
+    return (
+      <div
+        className="flex items-center gap-2 py-0.5 cursor-pointer group"
+        onClick={() => setEditing(true)}
+      >
+        <span className="text-[10px] text-slate-400 w-16 shrink-0">{label}</span>
+        <span className="text-xs text-slate-600 truncate group-hover:bg-green-50/50 rounded px-1 -mx-1 transition-colors">
+          {value || <span className="text-slate-300 italic">クリックして入力...</span>}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="text-[10px] text-slate-400 w-16 shrink-0">{label}</span>
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save()
+          if (e.key === 'Escape') { setDraft(value ?? ''); setEditing(false) }
+        }}
+        className="flex-1 text-xs border border-green-300 rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-green-500"
+        disabled={saving}
+      />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
+
 export default function SupplierSidePanel({
   supplier,
   canEdit,
@@ -46,6 +149,8 @@ export default function SupplierSidePanel({
   onSupplierUpdated,
 }: SupplierSidePanelProps) {
   const [localStage, setLocalStage] = useState<SupplierStage>(supplier.stage)
+  const [localBusinessType, setLocalBusinessType] = useState<SupplierBusinessType | null>(supplier.business_type)
+  const [localSampleStatus, setLocalSampleStatus] = useState<SampleTrackingStatus>(supplier.sample_status)
   const [localMemo, setLocalMemo] = useState(supplier.memo ?? '')
   const [localActionMemo, setLocalActionMemo] = useState(supplier.action_memo ?? '')
   const [comms, setComms] = useState<CommLog[]>([])
@@ -60,6 +165,8 @@ export default function SupplierSidePanel({
   useEffect(() => {
     if (prevSupplierId.current !== supplier.supplier_id) {
       setLocalStage(supplier.stage)
+      setLocalBusinessType(supplier.business_type)
+      setLocalSampleStatus(supplier.sample_status)
       setLocalMemo(supplier.memo ?? '')
       setLocalActionMemo(supplier.action_memo ?? '')
       setMessageBody('')
@@ -92,6 +199,17 @@ export default function SupplierSidePanel({
   async function handleStageChange(newStage: SupplierStage) {
     setLocalStage(newStage)
     await saveField('stage', newStage)
+  }
+
+  async function handleBusinessTypeChange(newType: string) {
+    const val = (newType || null) as SupplierBusinessType | null
+    setLocalBusinessType(val)
+    await saveField('business_type', val)
+  }
+
+  async function handleSampleStatusChange(newStatus: SampleTrackingStatus) {
+    setLocalSampleStatus(newStatus)
+    await saveField('sample_status', newStatus)
   }
 
   async function handleSendMessage() {
@@ -131,34 +249,30 @@ export default function SupplierSidePanel({
     return d.toLocaleDateString('ja-JP')
   }
 
+  // Wrapper for InlineField's onSave
+  async function handleInlineSave(field: string, value: string | null) {
+    await saveField(field, value)
+  }
+
   return (
     <div className="w-[400px] shrink-0 border-l border-slate-200 bg-white flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900 truncate">{supplier.supplier_name}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            {supplier.prefecture && (
-              <span className="text-xs text-slate-500">{supplier.prefecture}</span>
-            )}
-            {supplier.business_type && (
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[supplier.business_type]}`}>
-                {SUPPLIER_BUSINESS_TYPE_LABELS[supplier.business_type]}
-              </span>
-            )}
-          </div>
+      {/* Header — editable name */}
+      <div className="px-4 py-3 border-b border-slate-200 flex items-start justify-between">
+        <div className="min-w-0 flex-1 mr-2">
+          <InlineField label="" value={supplier.supplier_name} field="supplier_name" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="" value={supplier.supplier_name_en} field="supplier_name_en" canEdit={canEdit} onSave={handleInlineSave} />
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
+        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded mt-0.5">
           <X className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Stage + Sample Status */}
-        <div className="px-4 py-3 border-b border-slate-100">
-          <div className="flex items-center gap-2 mb-2">
-            <label className="text-xs text-slate-500 w-16">ステータス</label>
+        {/* Stage + Business Type + Sample Status */}
+        <div className="px-4 py-3 border-b border-slate-100 space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-slate-400 w-16 shrink-0">ステータス</label>
             {canEdit ? (
               <select
                 value={localStage}
@@ -175,37 +289,74 @@ export default function SupplierSidePanel({
               </span>
             )}
           </div>
-          {supplier.sample_status !== 'none' && (
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-500 w-16">サンプル</label>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SAMPLE_STATUS_COLORS[supplier.sample_status]}`}>
-                {SAMPLE_STATUS_LABELS[supplier.sample_status]}
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-slate-400 w-16 shrink-0">業態区分</label>
+            {canEdit ? (
+              <select
+                value={localBusinessType ?? ''}
+                onChange={(e) => handleBusinessTypeChange(e.target.value)}
+                className="text-xs border border-slate-200 rounded px-2 py-1 flex-1"
+              >
+                <option value="">—</option>
+                {BUSINESS_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            ) : (
+              localBusinessType ? (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[localBusinessType]}`}>
+                  {SUPPLIER_BUSINESS_TYPE_LABELS[localBusinessType]}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400">—</span>
+              )
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-slate-400 w-16 shrink-0">サンプル</label>
+            {canEdit ? (
+              <select
+                value={localSampleStatus}
+                onChange={(e) => handleSampleStatusChange(e.target.value as SampleTrackingStatus)}
+                className="text-xs border border-slate-200 rounded px-2 py-1 flex-1"
+              >
+                {SAMPLE_STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            ) : (
+              localSampleStatus !== 'none' ? (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SAMPLE_STATUS_COLORS[localSampleStatus]}`}>
+                  {SAMPLE_STATUS_LABELS[localSampleStatus]}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400">—</span>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Contact Info — inline editable */}
+        <div className="px-4 py-3 border-b border-slate-100 space-y-0.5">
+          <label className="text-[10px] font-medium text-slate-500 mb-1 block">連絡先</label>
+          <InlineField label="担当" value={supplier.contact_person} field="contact_person" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="電話" value={supplier.phone} field="phone" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="メール" value={supplier.email} field="email" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Web" value={supplier.website_url} field="website_url" canEdit={canEdit} onSave={handleInlineSave} />
+          {supplier.website_url && (
+            <a href={supplier.website_url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] text-green-700 hover:underline ml-[72px]">
+              <ExternalLink className="w-2.5 h-2.5" />開く
+            </a>
           )}
         </div>
 
-        {/* Contact Info */}
-        <div className="px-4 py-3 border-b border-slate-100 space-y-1.5">
-          {supplier.contact_person && (
-            <div className="text-xs text-slate-600">担当: {supplier.contact_person}</div>
-          )}
-          {supplier.phone && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-600">
-              <Phone className="w-3 h-3" />{supplier.phone}
-            </div>
-          )}
-          {supplier.email && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-600">
-              <Mail className="w-3 h-3" />{supplier.email}
-            </div>
-          )}
-          {supplier.website_url && (
-            <a href={supplier.website_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-green-700 hover:underline">
-              <ExternalLink className="w-3 h-3" />Website
-            </a>
-          )}
+        {/* Details — inline editable */}
+        <div className="px-4 py-3 border-b border-slate-100 space-y-0.5">
+          <label className="text-[10px] font-medium text-slate-500 mb-1 block">詳細</label>
+          <InlineField label="都道府県" value={supplier.prefecture} field="prefecture" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="入り口" value={supplier.source} field="source" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="取扱品目" value={supplier.specialty} field="specialty" canEdit={canEdit} onSave={handleInlineSave} />
         </div>
 
         {/* Memo */}

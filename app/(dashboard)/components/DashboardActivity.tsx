@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 export interface ActivityItem {
-  icon: string
+  icon: ReactNode
   description: string
   timestamp: string
   href?: string

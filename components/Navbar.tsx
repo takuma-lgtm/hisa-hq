@@ -1,5 +1,6 @@
 'use client'
 
+import React from "react"
 import { Menu, LayoutDashboard, KanbanSquare, RefreshCw, Warehouse, Package, Inbox, LogOut, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -86,22 +87,27 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
                 {visibleItems.map(({ href, label, icon: Icon }) => {
                   const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
                   return (
-                    <NavigationMenuItem key={href}>
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href={href}
-                          className={cn(
-                            "group inline-flex h-9 w-max items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                            isActive
-                              ? "bg-green-50 text-green-800"
-                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          )}
-                        >
-                          <Icon size={16} className={cn("mr-1.5", isActive ? "text-green-700" : "text-muted-foreground")} />
-                          {label}
-                        </Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
+                    <React.Fragment key={href}>
+                      {href === '/leads' && (
+                        <div className="w-px h-5 bg-border mx-1" />
+                      )}
+                      <NavigationMenuItem>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={href}
+                            className={cn(
+                              "group inline-flex h-9 w-max items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                              isActive
+                                ? "bg-green-50 text-green-800"
+                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                          >
+                            <Icon size={16} className={cn("mr-1.5", isActive ? "text-green-700" : "text-muted-foreground")} />
+                            {label}
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                    </React.Fragment>
                   )
                 })}
               </NavigationMenuList>

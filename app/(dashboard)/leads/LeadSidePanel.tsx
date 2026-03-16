@@ -3,9 +3,8 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Instagram, Globe, ChevronRight } from 'lucide-react'
 import type { Customer, LeadStage } from '@/types/database'
-import { LEAD_STAGE_LABELS } from '@/types/database'
-import { qualificationProgress } from '@/lib/qualification'
 import MessageComposer from './[id]/MessageComposer'
 import OutreachTimeline from './[id]/OutreachTimeline'
 
@@ -18,32 +17,36 @@ interface Props {
   onLeadUpdated?: (updated: Customer) => void
 }
 
-const QUALIFICATION_EDITABLE_STAGES: LeadStage[] = ['replied']
-const QUALIFICATION_READONLY_STAGES: LeadStage[] = ['qualified', 'handed_off']
+const STAGE_BADGE: Record<string, { label: string; classes: string }> = {
+  new_lead:     { label: 'New',          classes: 'bg-slate-100 text-slate-600' },
+  contacted:    { label: 'Contacted',    classes: 'bg-blue-50 text-blue-700' },
+  replied:      { label: 'Replied',      classes: 'bg-green-50 text-green-700' },
+  qualified:    { label: 'Qualified',    classes: 'bg-amber-50 text-amber-700' },
+  handed_off:   { label: 'Handed Off',   classes: 'bg-purple-50 text-purple-700' },
+  disqualified: { label: 'Disqualified', classes: 'bg-red-50 text-red-600' },
+}
 
-export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, onDataChanged, onLeadUpdated }: Props) {
+const NEXT_STEP: Record<string, { label: string; nextStage: LeadStage }> = {
+  new_lead:   { label: 'Mark Contacted',  nextStage: 'contacted' },
+  contacted:  { label: 'Mark Replied',     nextStage: 'replied' },
+  replied:    { label: 'Mark Qualified',   nextStage: 'qualified' },
+}
+
+export default function LeadSidePanel({ lead, canEdit, onClose, onDataChanged, onLeadUpdated }: Props) {
   const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
-  const [converting, setConverting] = useState(false)
-  const [convertError, setConvertError] = useState<string | null>(null)
-  const [showConvertModal, setShowConvertModal] = useState(false)
   const [draftMessage, setDraftMessage] = useState<string | undefined>(undefined)
   const [localStage, setLocalStage] = useState<LeadStage>((lead.lead_stage as LeadStage) ?? 'new_lead')
+  const [advancing, setAdvancing] = useState(false)
+  const [promoting, setPromoting] = useState(false)
+  const [promoteError, setPromoteError] = useState<string | null>(null)
 
-  // Local qualification state for auto-save
-  const [qualProducts, setQualProducts] = useState(lead.qualified_products ?? '')
-  const [qualVolume, setQualVolume] = useState(lead.qualified_volume_kg != null ? String(lead.qualified_volume_kg) : '')
-  const [qualBudget, setQualBudget] = useState(lead.qualified_budget ?? '')
-  const [qualSaving, setQualSaving] = useState(false)
-
-  // Reset local state when lead changes
+  // Reset local stage when lead changes
   const [prevLeadId, setPrevLeadId] = useState(lead.customer_id)
   if (lead.customer_id !== prevLeadId) {
     setPrevLeadId(lead.customer_id)
-    setQualProducts(lead.qualified_products ?? '')
-    setQualVolume(lead.qualified_volume_kg != null ? String(lead.qualified_volume_kg) : '')
-    setQualBudget(lead.qualified_budget ?? '')
     setLocalStage((lead.lead_stage as LeadStage) ?? 'new_lead')
+    setPromoteError(null)
   }
 
   const handleMessageSent = useCallback(() => {
@@ -56,55 +59,31 @@ export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, o
     setDraftMessage(messageText)
   }, [])
 
-  const stage = localStage
-  const showQualEditable = QUALIFICATION_EDITABLE_STAGES.includes(stage)
-  const showQualReadonly = QUALIFICATION_READONLY_STAGES.includes(stage)
+  const stageBadge = STAGE_BADGE[localStage] ?? STAGE_BADGE.new_lead
+  const nextStep = NEXT_STEP[localStage]
 
-  async function handleStageChange(newStage: LeadStage) {
-    setLocalStage(newStage)
+  async function handleAdvanceStage() {
+    if (!nextStep) return
+    setAdvancing(true)
     try {
       const res = await fetch(`/api/leads/${lead.customer_id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_stage: newStage }),
+        body: JSON.stringify({ lead_stage: nextStep.nextStage }),
       })
       if (res.ok) {
+        setLocalStage(nextStep.nextStage)
         const data = await res.json()
         if (data.customer && onLeadUpdated) onLeadUpdated(data.customer)
       }
-    } catch { /* silent */ }
-  }
-
-  const localQualCustomer = {
-    qualified_products: qualProducts || null,
-    qualified_volume_kg: qualVolume ? Number(qualVolume) : null,
-    qualified_budget: qualBudget || null,
-  }
-  const progress = qualificationProgress(localQualCustomer)
-  const qualified = progress.complete
-
-  async function saveQualField(field: string, value: unknown) {
-    setQualSaving(true)
-    try {
-      const res = await fetch(`/api/leads/${lead.customer_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.customer && onLeadUpdated) {
-          onLeadUpdated(data.customer)
-        }
-      }
     } finally {
-      setQualSaving(false)
+      setAdvancing(false)
     }
   }
 
-  async function handleConvert() {
-    setConverting(true)
-    setConvertError(null)
+  async function handlePromote() {
+    setPromoting(true)
+    setPromoteError(null)
     try {
       const res = await fetch(`/api/leads/${lead.customer_id}/convert`, { method: 'POST' })
       const data = await res.json()
@@ -113,14 +92,13 @@ export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, o
           router.push(`/opportunities/${data.opportunity_id}`)
           return
         }
-        throw new Error(data.error || 'Failed to convert')
+        throw new Error(data.error || 'Failed to promote')
       }
       router.push(`/opportunities/${data.opportunity_id}`)
     } catch (err) {
-      setConvertError(err instanceof Error ? err.message : 'Failed to convert')
-      setShowConvertModal(false)
+      setPromoteError(err instanceof Error ? err.message : 'Failed to promote')
     } finally {
-      setConverting(false)
+      setPromoting(false)
     }
   }
 
@@ -147,27 +125,63 @@ export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, o
         </div>
 
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <select
-            value={stage}
-            onChange={(e) => handleStageChange(e.target.value as LeadStage)}
-            className="text-xs border border-slate-200 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-green-500 bg-white"
-          >
-            {(Object.entries(LEAD_STAGE_LABELS) as [LeadStage, string][]).map(([v, label]) => (
-              <option key={v} value={v}>{label}</option>
-            ))}
-          </select>
-          {(showQualEditable || showQualReadonly) && (
-            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-              qualified ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-            }`}>
-              {qualified ? 'Ready to Convert' : `Qualification: ${progress.filled}/3`}
-            </span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageBadge.classes}`}>
+            {stageBadge.label}
+          </span>
+          {lead.instagram_url && (
+            <a
+              href={lead.instagram_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-pink-600 transition-colors"
+              title="Instagram"
+            >
+              <Instagram className="w-3.5 h-3.5" />
+            </a>
+          )}
+          {lead.website_url && (
+            <a
+              href={lead.website_url.startsWith('http') ? lead.website_url : `https://${lead.website_url}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 hover:text-blue-600 transition-colors"
+              title="Website"
+            >
+              <Globe className="w-3.5 h-3.5" />
+            </a>
           )}
         </div>
       </div>
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+        {/* Next step button */}
+        {canEdit && nextStep && (
+          <button
+            onClick={handleAdvanceStage}
+            disabled={advancing}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {advancing ? 'Updating...' : nextStep.label}
+            {!advancing && <ChevronRight className="w-4 h-4" />}
+          </button>
+        )}
+
+        {/* Promote to Opportunity button — only for qualified leads */}
+        {canEdit && localStage === 'qualified' && (
+          <div>
+            <button
+              onClick={handlePromote}
+              disabled={promoting}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              {promoting ? 'Promoting...' : 'Promote to Opportunity'}
+              {!promoting && <ChevronRight className="w-4 h-4" />}
+            </button>
+            {promoteError && <p className="text-xs text-red-600 mt-1">{promoteError}</p>}
+          </div>
+        )}
+
         {/* Message composer */}
         <MessageComposer
           leadId={lead.customer_id}
@@ -176,128 +190,6 @@ export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, o
           onMessageSent={handleMessageSent}
           initialMessage={draftMessage}
         />
-
-        {/* Qualification checklist — editable for 'replied' stage */}
-        {showQualEditable && canEdit && (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-3 py-2 bg-slate-50">
-              <span className="text-xs font-medium text-slate-700">
-                Qualification: {progress.filled}/3 complete
-              </span>
-            </div>
-            <div className="h-1 bg-slate-100">
-              <div
-                className={`h-full transition-all ${qualified ? 'bg-green-500' : 'bg-amber-400'}`}
-                style={{ width: `${(progress.filled / 3) * 100}%` }}
-              />
-            </div>
-            <div className="px-3 py-2 space-y-3">
-              <div className="flex items-start gap-2">
-                <span className={`mt-1 w-4 h-4 flex items-center justify-center rounded-full text-xs ${
-                  progress.items[0].filled ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
-                }`}>
-                  {progress.items[0].filled ? '✓' : '○'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <label className="text-xs text-slate-500 block mb-0.5">Products interested in</label>
-                  <input
-                    type="text"
-                    value={qualProducts}
-                    onChange={(e) => setQualProducts(e.target.value)}
-                    onBlur={() => saveQualField('qualified_products', qualProducts || null)}
-                    placeholder="e.g. Ceremonial Grade, Latte Grade"
-                    className="w-full text-xs px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className={`mt-1 w-4 h-4 flex items-center justify-center rounded-full text-xs ${
-                  progress.items[1].filled ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
-                }`}>
-                  {progress.items[1].filled ? '✓' : '○'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <label className="text-xs text-slate-500 block mb-0.5">Est. monthly volume (kg)</label>
-                  <input
-                    type="number"
-                    value={qualVolume}
-                    onChange={(e) => setQualVolume(e.target.value)}
-                    onBlur={() => saveQualField('qualified_volume_kg', qualVolume ? Number(qualVolume) : null)}
-                    placeholder="e.g. 5, 10, 20"
-                    min="0"
-                    className="w-full text-xs px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className={`mt-1 w-4 h-4 flex items-center justify-center rounded-full text-xs ${
-                  progress.items[2].filled ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
-                }`}>
-                  {progress.items[2].filled ? '✓' : '○'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <label className="text-xs text-slate-500 block mb-0.5">Budget range</label>
-                  <input
-                    type="text"
-                    value={qualBudget}
-                    onChange={(e) => setQualBudget(e.target.value)}
-                    onBlur={() => saveQualField('qualified_budget', qualBudget || null)}
-                    placeholder="e.g. $30-40/kg"
-                    className="w-full text-xs px-2 py-1 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-              {qualSaving && <p className="text-xs text-slate-400">Saving...</p>}
-            </div>
-            {/* Convert button inside qualification card */}
-            <div className="px-3 py-2 border-t border-slate-100">
-              <button
-                onClick={() => setShowConvertModal(true)}
-                className="w-full px-3 py-1.5 text-sm font-medium rounded-md transition-colors bg-green-600 text-white hover:bg-green-700"
-              >
-                Convert to Opportunity
-              </button>
-              {convertError && <p className="text-xs text-red-600 mt-1">{convertError}</p>}
-            </div>
-          </div>
-        )}
-
-        {/* Qualification summary — read-only for 'qualified' / 'handed_off' stages */}
-        {showQualReadonly && (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-3 py-2 bg-green-50">
-              <span className="text-xs font-medium text-green-700">Qualification Complete</span>
-            </div>
-            <div className="px-3 py-2 space-y-2">
-              {progress.items.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={`w-4 h-4 flex items-center justify-center rounded-full text-xs ${
-                    item.filled ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
-                  }`}>
-                    {item.filled ? '✓' : '○'}
-                  </span>
-                  <span className="text-xs text-slate-500">{item.label}:</span>
-                  <span className="text-xs text-slate-700 font-medium">
-                    {i === 0 && (qualProducts || '—')}
-                    {i === 1 && (qualVolume ? `${qualVolume} kg/month` : '—')}
-                    {i === 2 && (qualBudget || '—')}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {stage === 'qualified' && canEdit && (
-              <div className="px-3 py-2 border-t border-slate-100">
-                <button
-                  onClick={() => setShowConvertModal(true)}
-                  className="w-full px-3 py-1.5 text-sm font-medium rounded-md transition-colors bg-green-600 text-white hover:bg-green-700"
-                >
-                  Convert to Opportunity
-                </button>
-                {convertError && <p className="text-xs text-red-600 mt-1">{convertError}</p>}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Message history */}
         <div className="border-t border-slate-100 pt-3">
@@ -319,47 +211,6 @@ export default function LeadSidePanel({ lead, canEdit, outreachStats, onClose, o
           Open Full Detail →
         </Link>
       </div>
-
-      {/* Convert confirmation modal */}
-      {showConvertModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Convert {lead.cafe_name} to an Opportunity?
-            </h3>
-            <div className="space-y-2">
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                <span className="text-slate-400">Products:</span>
-                <span className="text-slate-700">{qualProducts || '—'}</span>
-                <span className="text-slate-400">Volume:</span>
-                <span className="text-slate-700">{qualVolume ? `${qualVolume} kg/month` : '—'}</span>
-                <span className="text-slate-400">Budget:</span>
-                <span className="text-slate-700">{qualBudget || '—'}</span>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500">
-              This will move the lead to the Opportunities pipeline.
-            </p>
-            {convertError && <p className="text-xs text-red-600">{convertError}</p>}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowConvertModal(false)}
-                disabled={converting}
-                className="px-3 py-1.5 text-sm rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConvert}
-                disabled={converting}
-                className="px-3 py-1.5 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {converting ? 'Converting...' : 'Convert'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -145,6 +145,11 @@ body {
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+/* Subtle zebra striping for data tables */
+.zebra-table tbody tr:nth-child(even) {
+  background-color: #FAFAF8;
+}
+
 /* Thin scrollbar for the horizontal kanban board */
 .kanban-scroll {
   scrollbar-width: thin;

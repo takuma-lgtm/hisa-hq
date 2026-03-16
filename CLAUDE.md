@@ -476,17 +476,26 @@ Priorities:
 2. clarity
 3. operational efficiency
 
+Two guiding principles:
+
+**Sequential** — workflows follow a natural step-by-step order. Each action leads logically to the next. Don't make users jump between screens or hunt for the next step.
+
+**Intuitive** — interactions should be obvious at a glance. If a user has to pause and figure out how something works, simplify it. Prefer direct manipulation (e.g. click-to-cycle) over hidden menus and dropdowns. Remove UI that doesn't earn its space.
+
 Avoid:
 
 • complex UI frameworks
 • heavy animations
 • excessive modal flows
+• dropdowns when a simpler control works
+• dashboard cards or stats that don't drive action
 
 Prefer:
 
 • tables
 • direct editing
 • keyboard efficiency
+• inline actions over separate pages
 
 ---
 

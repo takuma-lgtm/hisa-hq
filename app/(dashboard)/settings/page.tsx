@@ -31,10 +31,10 @@ export default async function SettingsPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-200 shrink-0">
-        <h1 className="text-lg font-semibold text-slate-900">Settings</h1>
+        <h1 className="text-2xl font-serif text-slate-900">Settings</h1>
         <p className="text-xs text-slate-500 mt-0.5">Manage exchange rates, shipping costs, and company info</p>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 bg-slate-50/50">
         <SettingsForm grouped={grouped} stripeConfigured={!!process.env.STRIPE_SECRET_KEY} />
       </div>
     </div>

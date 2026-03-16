@@ -191,7 +191,7 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Products</h1>
+          <h1 className="text-2xl font-serif text-slate-900">Products</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {tab === 'our' ? (
               <>
@@ -276,7 +276,7 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
               {filtered.length === 0 ? (
                 <p className="text-center py-20 text-slate-400 text-sm">No products match your filters.</p>
               ) : (
-                <table className="w-full text-sm border-collapse">
+                <table className="w-full text-sm border-collapse zebra-table">
                   <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
                     <tr>
                       <Th>Product</Th>

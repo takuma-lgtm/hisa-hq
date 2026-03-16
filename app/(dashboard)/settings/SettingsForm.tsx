@@ -121,8 +121,8 @@ export default function SettingsForm({ grouped, stripeConfigured }: Props) {
     }
 
     return (
-      <section>
-        <h2 className="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200">
+      <section className="bg-white border border-slate-200 rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-slate-800 mb-4">
           {CATEGORY_LABELS.payments}
         </h2>
         <div className="space-y-4">
@@ -192,8 +192,8 @@ export default function SettingsForm({ grouped, stripeConfigured }: Props) {
         const isNumber = NUMBER_CATEGORIES.has(category)
 
         return (
-          <section key={category}>
-            <h2 className="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200">
+          <section key={category} className="bg-white border border-slate-200 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-slate-800 mb-4">
               {CATEGORY_LABELS[category] || category}
             </h2>
             <div className="space-y-3">

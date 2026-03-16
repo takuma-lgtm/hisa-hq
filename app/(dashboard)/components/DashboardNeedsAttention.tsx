@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 export interface AttentionItem {
-  icon: string
+  icon: ReactNode
   label: string
   href: string
 }

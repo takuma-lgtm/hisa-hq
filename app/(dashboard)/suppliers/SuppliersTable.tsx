@@ -17,6 +17,36 @@ interface SuppliersTableProps {
   canEdit: boolean
 }
 
+function SortHeader({
+  label,
+  field,
+  sortKey,
+  sortDir,
+  onSort,
+  first,
+  className: extraClassName,
+}: {
+  label: string
+  field: SortKey
+  sortKey: SortKey | null
+  sortDir: SortDir
+  onSort: (key: SortKey) => void
+  first?: boolean
+  className?: string
+}) {
+  return (
+    <th
+      className={`${first ? 'pl-6' : 'pl-3'} pr-3 py-2 text-left text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700 select-none ${extraClassName || ''}`}
+      onClick={() => onSort(field)}
+    >
+      {label}
+      {sortKey === field && (
+        <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+      )}
+    </th>
+  )
+}
+
 export default function SuppliersTable({ suppliers: initialSuppliers, profiles, commCounts: initialCommCounts, canEdit }: SuppliersTableProps) {
   const [suppliers, setSuppliers] = useState(initialSuppliers)
   const [commCounts, setCommCounts] = useState(initialCommCounts)
@@ -32,6 +62,7 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
 
   // Update from props when parent re-fetches
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local state from props
     setSuppliers(initialSuppliers)
     setCommCounts(initialCommCounts)
   }, [initialSuppliers, initialCommCounts])
@@ -144,18 +175,6 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
     )
   }, [])
 
-  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
-    <th
-      className="px-3 py-2 text-left text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700 select-none"
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      {sortKey === field && (
-        <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
-      )}
-    </th>
-  )
-
   const relativeDate = (dateStr: string | null) => {
     if (!dateStr) return '—'
     const d = new Date(dateStr)
@@ -174,7 +193,7 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
       {/* Table section */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Search + Filters bar */}
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
+        <div className="px-6 py-3 border-b border-slate-200 flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -204,7 +223,7 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
 
         {/* Filter dropdowns */}
         {showFilters && (
-          <div className="px-4 py-2 border-b border-slate-200 flex items-center gap-3 flex-wrap bg-slate-50">
+          <div className="px-6 py-2 border-b border-slate-200 flex items-center gap-3 flex-wrap bg-slate-50">
             <select
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value as SupplierStage | '')}
@@ -260,16 +279,16 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
 
         {/* Table */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full">
+          <table className="w-full zebra-table" style={{ tableLayout: 'auto' }}>
             <thead className="bg-slate-50 sticky top-0 z-10">
               <tr>
-                <SortHeader label="企業名" field="supplier_name" />
-                <SortHeader label="都道府県" field="prefecture" />
-                <SortHeader label="業態区分" field="business_type" />
-                <SortHeader label="ステータス" field="stage" />
+                <SortHeader label="企業名" field="supplier_name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} first className="w-[18%]" />
+                <SortHeader label="都道府県" field="prefecture" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                <SortHeader label="業態区分" field="business_type" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                <SortHeader label="ステータス" field="stage" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                 <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">サンプル</th>
-                <SortHeader label="最終更新" field="updated_at" />
-                <SortHeader label="入り口" field="source" />
+                <SortHeader label="最終更新" field="updated_at" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                <SortHeader label="入り口" field="source" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -290,7 +309,7 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <td className="px-3 py-2">
+                    <td className="pl-6 pr-3 py-2">
                       <span className="text-sm font-medium text-slate-900">{s.supplier_name}</span>
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-600">{s.prefecture || '—'}</td>

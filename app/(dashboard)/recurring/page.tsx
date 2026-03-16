@@ -29,7 +29,7 @@ export default async function RecurringPage() {
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Recurring Customers</h1>
+          <h1 className="text-2xl font-serif text-slate-900">Recurring Customers</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {customers?.length ?? 0} active matcha accounts
           </p>

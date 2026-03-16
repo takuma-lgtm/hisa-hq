@@ -33,10 +33,9 @@ export default function RecordTransferModal({ skus, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const [transactionRef, setTransactionRef] = useState('')
+  const [dateShipped, setDateShipped] = useState(() => new Date().toISOString().split('T')[0])
   const [carrier, setCarrier] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
-  const [note, setNote] = useState('')
   const [items, setItems] = useState<TransferItem[]>([{ sku_id: '', quantity: '' }])
 
   function addItem() {
@@ -82,8 +81,7 @@ export default function RecordTransferModal({ skus, onClose }: Props) {
           sku_id: item.sku_id,
           quantity: parseInt(item.quantity, 10),
           carrier: carrier || undefined,
-          transaction_ref: transactionRef || undefined,
-          note: note || undefined,
+          date_shipped: dateShipped || undefined,
           ...trackingFields,
         }),
       })
@@ -108,17 +106,6 @@ export default function RecordTransferModal({ skus, onClose }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Transaction Ref</label>
-            <input
-              type="text"
-              value={transactionRef}
-              onChange={e => setTransactionRef(e.target.value)}
-              placeholder="e.g. TR-4"
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
-
           {/* Multi-SKU rows */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-2">Items to Transfer *</label>
@@ -169,6 +156,16 @@ export default function RecordTransferModal({ skus, onClose }: Props) {
             </button>
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Date Shipped</label>
+            <input
+              type="date"
+              value={dateShipped}
+              onChange={e => setDateShipped(e.target.value)}
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Carrier</label>
@@ -192,16 +189,6 @@ export default function RecordTransferModal({ skus, onClose }: Props) {
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              rows={2}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500 resize-none"
-            />
           </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
