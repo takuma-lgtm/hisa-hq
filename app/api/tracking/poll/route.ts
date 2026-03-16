@@ -7,10 +7,18 @@ import {
   createDraftIfNotExists,
 } from '@/lib/draft-messages'
 
+import crypto from 'crypto'
+
+function verifyCronSecret(request: Request): boolean {
+  const authHeader = request.headers.get('authorization') ?? ''
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ''}`
+  if (authHeader.length !== expected.length) return false
+  return crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+}
+
 export async function POST(request: Request) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verify cron secret (timing-safe comparison)
+  if (!process.env.CRON_SECRET || !verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

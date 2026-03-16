@@ -11,6 +11,13 @@ const ALLOWED_FIELDS = new Set([
   'us_landing_cost_per_kg_usd', 'uk_landing_cost_per_kg_gbp', 'eu_landing_cost_per_kg_eur',
   'selling_price_usd', 'min_price_usd', 'selling_price_gbp', 'min_price_gbp',
   'selling_price_eur', 'min_price_eur', 'gross_profit_per_kg_usd',
+  // Migration 016 additions
+  'tasting_headline', 'short_description', 'long_description',
+  'harvest_season', 'cultivar', 'production_region', 'grind_method',
+  'roast_level', 'texture_description', 'best_for', 'photo_url', 'photo_folder_url',
+  'is_competitor', 'competitor_producer', 'competitor_url', 'introduced_by',
+  'should_contact_producer',
+  'primary_supplier_id',
 ])
 
 export async function PATCH(

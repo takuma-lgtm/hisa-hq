@@ -133,7 +133,7 @@ export async function POST(
         const qty = item.qty_grams ?? 1
 
         // Create inventory transaction
-        await service.from('inventory_transactions').insert({
+        const { error: txnErr } = await service.from('inventory_transactions').insert({
           sku_id: item.sku_id,
           movement_type: 'outbound_sample',
           qty_change: -qty,
@@ -146,6 +146,11 @@ export async function POST(
           created_by: user.id,
         })
 
+        if (txnErr) {
+          console.error(`Failed to create inventory transaction for SKU ${item.sku_id}:`, txnErr.message)
+          continue
+        }
+
         // Update inventory level
         const { data: existing } = await service
           .from('inventory_levels')
@@ -155,13 +160,17 @@ export async function POST(
           .single()
 
         if (existing) {
-          await service
+          const { error: levelErr } = await service
             .from('inventory_levels')
             .update({
               quantity: existing.quantity - qty,
               updated_at: new Date().toISOString(),
             })
             .eq('inventory_level_id', existing.inventory_level_id)
+
+          if (levelErr) {
+            console.error(`Failed to update inventory level for SKU ${item.sku_id}:`, levelErr.message)
+          }
         }
       }
     }
