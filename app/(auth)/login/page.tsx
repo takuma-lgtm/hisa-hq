@@ -37,7 +37,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-700 mb-4">
             <span className="text-white text-xl font-bold">H</span>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">HISA Matcha CRM</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Hisa HQ</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
         </div>
 

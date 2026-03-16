@@ -37,6 +37,7 @@ export default async function DashboardPage() {
     { data: recentCalls },
     { data: recentProposals },
     { data: recentSamples },
+    { data: supplierData },
   ] = await Promise.all([
     // Metric 1: Active leads
     service
@@ -148,6 +149,10 @@ export default async function DashboardPage() {
       .select('batch_id, created_at, customer_id, ship_from')
       .order('created_at', { ascending: false })
       .limit(10),
+    // Supplier pipeline
+    service
+      .from('suppliers')
+      .select('supplier_id, stage, sample_status'),
   ])
 
   // Compute metrics
@@ -192,6 +197,8 @@ export default async function DashboardPage() {
     { label: 'Active Deals', value: `${activeOpps?.length ?? 0} deals` },
     { label: 'Inventory Value', value: `$${Math.round(inventoryValueUsd).toLocaleString()}` },
     { label: 'Low Stock', value: `${lowStockSkus.length} low`, alert: lowStockSkus.length > 0 },
+    { label: 'Active Suppliers', value: `${(supplierData ?? []).filter((s) => s.stage === 'deal_established').length} active` },
+    { label: 'Supplier Pipeline', value: `${(supplierData ?? []).filter((s) => s.stage !== 'deal_established' && s.stage !== 'ng').length} in pipeline` },
   ]
 
   // Needs attention items
@@ -237,6 +244,16 @@ export default async function DashboardPage() {
       icon: '📦',
       label: `Samples (${batch.tracking_number}) — in transit from ${batch.ship_from}`,
       href: '/inventory',
+    })
+  }
+
+  // Supplier attention items
+  const awaitingSamples = (supplierData ?? []).filter((s) => s.sample_status === 'waiting')
+  if (awaitingSamples.length > 0) {
+    attentionItems.push({
+      icon: '🍵',
+      label: `${awaitingSamples.length} supplier(s) awaiting samples`,
+      href: '/suppliers',
     })
   }
 

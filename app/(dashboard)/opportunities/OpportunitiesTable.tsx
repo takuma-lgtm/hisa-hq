@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
-import type { OpportunityStage, UserRole, Profile, Product } from '@/types/database'
+import type { OpportunityStage, UserRole, Profile, Product, PaymentStatus } from '@/types/database'
 import {
   OPPORTUNITY_TABLE_STAGES,
   OPPORTUNITY_STAGE_LABELS,
@@ -48,6 +48,7 @@ interface Props {
   profiles: Pick<Profile, 'id' | 'name'>[]
   products: Product[]
   userRole: UserRole
+  invoiceStatuses?: Record<string, PaymentStatus>
 }
 
 type SortKey = 'cafe_name' | 'days_in_stage'
@@ -102,7 +103,7 @@ function truncate(s: string | null, max: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function OpportunitiesTable({ opportunities, profiles, products, userRole }: Props) {
+export default function OpportunitiesTable({ opportunities, profiles, products, userRole, invoiceStatuses = {} }: Props) {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [showClosed, setShowClosed] = useState(false)
@@ -322,8 +323,19 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
                       {formatLocation(o.customer.city, o.customer.state, o.customer.country)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${stageColor}`}>
-                        {OPPORTUNITY_STAGE_LABELS[effectiveStage] ?? effectiveStage}
+                      <span className="inline-flex items-center gap-1">
+                        <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${stageColor}`}>
+                          {OPPORTUNITY_STAGE_LABELS[effectiveStage] ?? effectiveStage}
+                        </span>
+                        {invoiceStatuses[o.opportunity_id] === 'paid' && (
+                          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" title="Invoice paid" />
+                        )}
+                        {invoiceStatuses[o.opportunity_id] === 'pending' && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Invoice pending" />
+                        )}
+                        {invoiceStatuses[o.opportunity_id] === 'failed' && (
+                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Invoice failed" />
+                        )}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 max-w-[160px] text-slate-600" title={o.customer.qualified_products ?? ''}>

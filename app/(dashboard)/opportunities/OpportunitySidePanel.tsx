@@ -15,6 +15,7 @@ import {
   type QuoteCurrency,
   type QuoteLineResult,
 } from '@/lib/quote-pricing'
+import PaymentSection from './PaymentSection'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -355,6 +356,17 @@ export default function OpportunitySidePanel({ opportunity: opp, userRole, canEd
                 stageUpdating={stageUpdating}
                 onMarkWon={() => advanceStage('deal_won')}
                 onMarkLost={(reason) => advanceStage('lost', { disqualified_reason: reason })}
+              />
+            )}
+
+            {(effectiveStage === 'quote_sent' || effectiveStage === 'deal_won' || effectiveStage === 'payment_received') && (
+              <PaymentSection
+                oppId={oppId}
+                customer={opp.customer}
+                proposals={proposals}
+                settings={settings}
+                canEdit={canEdit}
+                onStageChanged={onStageChanged}
               />
             )}
 
@@ -1240,7 +1252,7 @@ function QuoteBuilder({
                 >
                   <option value="">Select product…</option>
                   {products.map((p) => (
-                    <option key={p.product_id} value={p.product_id}>{p.customer_facing_product_name ?? p.product_id}</option>
+                    <option key={p.product_id} value={p.product_id}>{p.customer_facing_product_name ?? p.product_id}{p.tasting_headline ? ` — ${p.tasting_headline}` : ''}</option>
                   ))}
                 </select>
                 <input

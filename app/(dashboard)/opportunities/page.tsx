@@ -1,7 +1,8 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { UserRole, OpportunityStage } from '@/types/database'
+import { createServiceClient } from '@/lib/supabase/server'
+import type { UserRole, OpportunityStage, PaymentStatus } from '@/types/database'
 import { OPPORTUNITY_TABLE_STAGES } from '@/lib/constants'
 import OpportunitiesTable from './OpportunitiesTable'
 
@@ -43,8 +44,9 @@ export default async function OpportunitiesPage() {
     supabase.from('profiles').select('id, name').order('name'),
     supabase
       .from('products')
-      .select('product_id, customer_facing_product_name, supplier_product_name, selling_price_usd, selling_price_gbp, selling_price_eur, min_price_usd, min_price_gbp, min_price_eur, us_landing_cost_per_kg_usd, uk_landing_cost_per_kg_gbp, eu_landing_cost_per_kg_eur, active')
+      .select('product_id, customer_facing_product_name, supplier_product_name, selling_price_usd, selling_price_gbp, selling_price_eur, min_price_usd, min_price_gbp, min_price_eur, us_landing_cost_per_kg_usd, uk_landing_cost_per_kg_gbp, eu_landing_cost_per_kg_eur, active, tasting_headline')
       .eq('active', true)
+      .eq('is_competitor', false)
       .order('customer_facing_product_name'),
   ])
 
@@ -52,6 +54,20 @@ export default async function OpportunitiesPage() {
   const activeCount = (opportunities ?? []).filter(
     (o) => o.stage !== 'disqualified' && o.stage !== 'lost',
   ).length
+
+  // Fetch latest invoice payment status per opportunity
+  const service = createServiceClient()
+  const { data: invoiceRows } = await service
+    .from('invoices')
+    .select('opportunity_id, payment_status')
+    .order('created_at', { ascending: false })
+  const invoiceStatusMap: Record<string, PaymentStatus> = {}
+  for (const row of invoiceRows ?? []) {
+    // First row per opportunity_id wins (latest due to ordering)
+    if (row.opportunity_id && !invoiceStatusMap[row.opportunity_id]) {
+      invoiceStatusMap[row.opportunity_id] = row.payment_status
+    }
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -75,6 +91,7 @@ export default async function OpportunitiesPage() {
             profiles={profiles ?? []}
             products={(products ?? []) as never}
             userRole={role}
+            invoiceStatuses={invoiceStatusMap}
           />
         </Suspense>
       )}

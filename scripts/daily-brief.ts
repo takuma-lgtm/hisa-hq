@@ -8,7 +8,7 @@
  *   npx tsx scripts/daily-brief.ts
  *
  * Cron (9am JST = 0:00 UTC):
- *   0 0 * * * cd /path/to/hisa-crm && npx tsx scripts/daily-brief.ts
+ *   0 0 * * * cd /path/to/hisa-hq && npx tsx scripts/daily-brief.ts
  *
  * Requires .env.local with:
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY

@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HISA Matcha CRM",
+  title: "Hisa HQ",
   description: "Internal CRM for HISA Matcha — lead management, sampling, and recurring orders.",
   icons: {
     icon: "/icon.svg",

@@ -10,6 +10,8 @@ import {
   Inbox,
   LogOut,
   Settings,
+  Sprout,
+  Handshake,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -31,6 +33,8 @@ const NAV_ITEMS = [
   { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
+  { href: '/suppliers', label: 'Suppliers', icon: Sprout, roles: ['admin', 'closer'] },
+  { href: '/active-suppliers', label: 'Active Suppliers', icon: Handshake, roles: ['admin', 'closer'] },
   { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
