@@ -115,7 +115,7 @@ export interface InvoiceLineItem {
 export interface InvoiceWithDetails {
   invoice_id: string
   invoice_number: string | null
-  opportunity_id: string
+  opportunity_id: string | null
   customer_id: string
   quotation_id: string | null
   amount: number
@@ -139,6 +139,9 @@ export interface InvoiceWithDetails {
   reviewed_by: string | null
   approved_at: string | null
   created_at: string
+  recurring_order_id: string | null
+  payment_split_label: string | null
+  payment_group_id: string | null
 }
 
 // JSONB payload shapes (legacy — new code uses normalized tables)
@@ -932,7 +935,7 @@ export interface Database {
         Row: {
           invoice_id: string
           quotation_id: string | null
-          opportunity_id: string
+          opportunity_id: string | null
           customer_id: string
           amount: number
           currency: string
@@ -956,11 +959,14 @@ export interface Database {
           reviewed_by: string | null
           approved_at: string | null
           created_at: string
+          recurring_order_id: string | null
+          payment_split_label: string | null
+          payment_group_id: string | null
         }
         Insert: {
           invoice_id?: string
           quotation_id?: string | null
-          opportunity_id: string
+          opportunity_id?: string | null
           customer_id: string
           amount: number
           currency?: string
@@ -984,11 +990,14 @@ export interface Database {
           reviewed_by?: string | null
           approved_at?: string | null
           created_at?: string
+          recurring_order_id?: string | null
+          payment_split_label?: string | null
+          payment_group_id?: string | null
         }
         Update: {
           invoice_id?: string
           quotation_id?: string | null
-          opportunity_id?: string
+          opportunity_id?: string | null
           customer_id?: string
           amount?: number
           currency?: string
@@ -1011,6 +1020,9 @@ export interface Database {
           customer_name?: string | null
           reviewed_by?: string | null
           approved_at?: string | null
+          recurring_order_id?: string | null
+          payment_split_label?: string | null
+          payment_group_id?: string | null
         }
         Relationships: []
       }
@@ -1025,6 +1037,7 @@ export interface Database {
           status: string
           notes: string | null
           monthly_volume: number | null
+          currency: string
           created_at: string
         }
         Insert: {
@@ -1037,6 +1050,7 @@ export interface Database {
           status?: string
           notes?: string | null
           monthly_volume?: number | null
+          currency?: string
           created_at?: string
         }
         Update: {
@@ -1049,6 +1063,7 @@ export interface Database {
           status?: string
           notes?: string | null
           monthly_volume?: number | null
+          currency?: string
         }
         Relationships: []
       }
