@@ -1,4 +1,4 @@
-import type { OpportunityStage, CafeSegment, MatchaExperience, CallType, CallOutcome } from '@/types/database'
+import type { OpportunityStage, CafeSegment, MatchaExperience, CallType, CallOutcome, SupplierStage, SupplierBusinessType, SampleTrackingStatus } from '@/types/database'
 
 export const PIPELINE_STAGES: {
   id: OpportunityStage
@@ -125,4 +125,44 @@ export const OPPORTUNITY_STAGE_COLORS: Record<string, string> = {
   deal_won: 'bg-green-50 text-green-700',
   disqualified: 'bg-red-50 text-red-600',
   lost: 'bg-slate-100 text-slate-500',
+}
+
+// ---------------------------------------------------------------------------
+// Supplier pipeline
+// ---------------------------------------------------------------------------
+
+export const SUPPLIER_STAGE_ORDER: SupplierStage[] = [
+  'not_started',
+  'inquiry_sent',
+  'met_at_event',
+  'in_communication',
+  'visit_scheduled',
+  'visited',
+  'deal_established',
+  'ng',
+]
+
+export const SUPPLIER_STAGE_COLORS: Record<SupplierStage, string> = {
+  not_started: 'bg-slate-100 text-slate-600',
+  inquiry_sent: 'bg-blue-50 text-blue-700',
+  met_at_event: 'bg-purple-50 text-purple-700',
+  in_communication: 'bg-amber-50 text-amber-700',
+  visit_scheduled: 'bg-cyan-50 text-cyan-700',
+  visited: 'bg-teal-50 text-teal-700',
+  deal_established: 'bg-green-100 text-green-800',
+  ng: 'bg-red-50 text-red-600',
+}
+
+export const SUPPLIER_BUSINESS_TYPE_COLORS: Record<SupplierBusinessType, string> = {
+  tea_wholesaler: 'bg-emerald-50 text-emerald-700',
+  farm: 'bg-lime-50 text-lime-700',
+  broker: 'bg-violet-50 text-violet-700',
+  other: 'bg-slate-100 text-slate-600',
+}
+
+export const SAMPLE_STATUS_COLORS: Record<SampleTrackingStatus, string> = {
+  none: '',
+  waiting: 'bg-orange-50 text-orange-700',
+  received: 'bg-blue-50 text-blue-700',
+  evaluated: 'bg-green-50 text-green-700',
 }
