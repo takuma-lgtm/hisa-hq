@@ -59,7 +59,7 @@ function verifyCronSecret(request: Request): boolean {
   return crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
 }
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   // Verify cron secret (timing-safe comparison)
   if (!process.env.CRON_SECRET || !verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -2,11 +2,7 @@
   "crons": [
     {
       "path": "/api/tracking/poll",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/daily-brief/generate",
-      "schedule": "0 0 * * *"
+      "schedule": "0 */2 * * *"
     }
   ]
 }
