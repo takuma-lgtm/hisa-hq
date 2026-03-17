@@ -239,7 +239,7 @@ export default function LeadsTable({ leads, profiles, outreachStats: initialOutr
                   onClick={() => setActiveStage(value)}
                   className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                     isActive
-                      ? 'bg-green-600 text-white'
+                      ? 'bg-slate-800 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -356,7 +356,7 @@ function SortTh({
   return (
     <th
       onClick={() => onSort(col)}
-      className={`${first ? 'pl-10' : 'pl-3'} pr-3 py-2 text-left text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${active ? 'text-green-700' : 'text-slate-500 hover:text-slate-800'}`}
+      className={`${first ? 'pl-10' : 'pl-3'} pr-3 py-2 text-left text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
     >
       <span className="inline-flex items-center gap-1">
         {children}

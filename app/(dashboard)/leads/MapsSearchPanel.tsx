@@ -259,7 +259,7 @@ export default function MapsSearchPanel() {
           <button
             onClick={handleSearch}
             disabled={searching || !query.trim() || !location.trim()}
-            className="inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
             {searching ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -496,7 +496,7 @@ export default function MapsSearchPanel() {
             importState === 'importing' ||
             importState === 'success'
           }
-          className="inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {importState === 'importing' && (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

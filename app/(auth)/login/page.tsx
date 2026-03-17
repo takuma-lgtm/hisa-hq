@@ -34,9 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-700 mb-4">
-            <span className="text-white text-xl font-bold">H</span>
-          </div>
+          <img src="/hisa-logo.png" alt="HISA" className="h-16 w-auto mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-slate-900">Hisa HQ</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
         </div>
@@ -83,7 +81,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
+            className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

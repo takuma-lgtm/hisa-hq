@@ -114,7 +114,7 @@ export default function ProductSidePanel({
               onClick={() => setPanelTab(t.key)}
               className={`pb-2 text-xs font-medium border-b-2 transition-colors ${
                 panelTab === t.key
-                  ? 'border-green-600 text-green-700'
+                  ? 'border-slate-800 text-slate-800'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -229,7 +229,7 @@ function InlineField({
     )
   }
 
-  const inputClass = 'w-full text-sm border border-green-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-green-500'
+  const inputClass = 'w-full text-sm border border-slate-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-slate-400'
 
   return (
     <div className="py-1">
@@ -337,7 +337,7 @@ function InlineNumericField({
           if (e.key === 'Enter') save()
           if (e.key === 'Escape') { setDraft(value != null ? String(value) : ''); setEditing(false) }
         }}
-        className="w-28 text-sm text-right border border-green-300 rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-green-500"
+        className="w-28 text-sm text-right border border-slate-300 rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-slate-400"
         disabled={saving}
       />
     </div>
@@ -653,7 +653,7 @@ function CreateForm({
     setSaving(false)
   }
 
-  const inputClass = 'w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+  const inputClass = 'w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent'
 
   return (
     <div className="w-[440px] shrink-0 border-l border-slate-200 flex flex-col overflow-hidden bg-white">
@@ -671,7 +671,7 @@ function CreateForm({
           <button
             type="submit"
             disabled={saving || !productId.trim() || !name.trim() || (!isCompetitor && !selectedSupplierId)}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Creating...' : 'Create'}
           </button>

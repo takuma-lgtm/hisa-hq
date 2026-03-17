@@ -216,7 +216,7 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
         <button
           className={`pb-2.5 pt-3 text-sm font-medium border-b-2 transition-colors ${
             tab === 'our'
-              ? 'border-green-600 text-green-700'
+              ? 'border-slate-800 text-slate-800'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
           onClick={() => { setTab('our'); setSelectedProductId(null); setCreateMode(false) }}
@@ -226,7 +226,7 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
         <button
           className={`pb-2.5 pt-3 text-sm font-medium border-b-2 transition-colors ${
             tab === 'competitor'
-              ? 'border-green-600 text-green-700'
+              ? 'border-slate-800 text-slate-800'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
           onClick={() => { setTab('competitor'); setSelectedProductId(null); setCreateMode(false) }}
@@ -373,7 +373,7 @@ function SortTh({
   const active = sortKey === col
   return (
     <th
-      className={`px-3 py-2 text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${right ? 'text-right' : 'text-left'} ${active ? 'text-green-700' : 'text-slate-500 hover:text-slate-800'}`}
+      className={`px-3 py-2 text-xs font-medium uppercase tracking-wide whitespace-nowrap cursor-pointer select-none ${right ? 'text-right' : 'text-left'} ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
       onClick={() => onSort(col)}
     >
       <span className="inline-flex items-center gap-1">

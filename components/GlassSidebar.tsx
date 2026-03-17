@@ -2,16 +2,15 @@
 
 import {
   Menu,
-  LayoutDashboard,
-  KanbanSquare,
-  RefreshCw,
-  Warehouse,
+  Home,
+  Target,
+  Boxes,
   Package,
-  Inbox,
+  Users,
   LogOut,
   Settings,
-  Sprout,
   Handshake,
+  Search,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -28,44 +27,46 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; roles: readonly string[] }
+type NavItem = { href: string; label: string; icon: typeof Home; roles: readonly string[] }
 type NavSection = { label: string; items: NavItem[] }
 
 const NAV_SECTIONS: NavSection[] = [
   {
     label: '',
     items: [
-      { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
+      { href: '/', label: 'Dashboard', icon: Home, roles: ['owner', 'admin', 'member'] },
     ],
   },
   {
-    label: 'Acquiring Customers',
+    label: 'Customers',
     items: [
-      { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
-      { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-      { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
+      { href: '/leads', label: 'Leads', icon: Users, roles: ['owner', 'admin', 'member'] },
+      { href: '/opportunities', label: 'Opportunities', icon: Target, roles: ['owner', 'admin', 'member'] },
+      { href: '/recurring', label: 'Active', icon: Handshake, roles: ['owner', 'admin'] },
     ],
   },
   {
-    label: 'Acquiring Supply',
+    label: 'Suppliers',
     items: [
-      { href: '/suppliers', label: 'Leads', icon: Sprout, roles: ['admin', 'closer'] },
-      { href: '/active-suppliers', label: 'Active', icon: Handshake, roles: ['admin', 'closer'] },
+      { href: '/suppliers', label: 'Leads', icon: Users, roles: ['owner', 'admin'] },
+      { href: '/active-suppliers', label: 'Active', icon: Handshake, roles: ['owner', 'admin'] },
     ],
   },
   {
     label: 'Inventory & Products',
     items: [
-      { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
-      { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
+      { href: '/inventory', label: 'Inventory', icon: Boxes, roles: ['owner', 'admin', 'member'] },
+      { href: '/products', label: 'Products', icon: Package, roles: ['owner', 'admin', 'member'] },
     ],
   },
 ]
 
-const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] }
+const SETTINGS_ITEM: NavItem = { href: '/settings', label: 'Settings', icon: Settings, roles: ['owner', 'admin'] }
 
 const ROLE_LABELS: Record<UserRole, string> = {
+  owner: 'Owner',
   admin: 'Admin',
+  member: 'Member',
   closer: 'Closer',
   lead_gen: 'Lead Gen',
 }
@@ -130,9 +131,19 @@ export default function GlassSidebar({ userName, userRole }: GlassSidebarProps) 
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}
       >
-        {/* Brand */}
-        <div className="h-16 flex items-center justify-center border-b border-[#0A0A0A]/8">
-          {brand}
+        {/* Brand / Search */}
+        <div className="h-16 flex items-center justify-center border-b border-[#0A0A0A]/8 px-3">
+          {isExpanded ? (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-[#0A0A0A]/5 hover:bg-[#0A0A0A]/8 transition-colors cursor-text"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
+            >
+              <Search size={14} className="text-[#0A0A0A]/30 shrink-0" />
+              <span className="text-sm text-[#0A0A0A]/30">Search…</span>
+            </button>
+          ) : (
+            brand
+          )}
         </div>
 
         {/* Nav */}

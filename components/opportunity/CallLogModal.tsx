@@ -1,17 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import type { CallLog, Customer, CallType, CallOutcome } from '@/types/database'
 import { CALL_TYPE_LABELS, CALL_OUTCOME_LABELS } from '@/lib/constants'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Props {
   opportunityId: string
   customerId: string
   userId: string
   customer: Pick<Customer, 'customer_id' | 'cafe_name'>
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onSaved: (log: CallLog) => void
-  onClose: () => void
 }
 
 const SPOKE_WITH_OPTIONS = ['owner', 'manager', 'bar_manager', 'staff', 'other']
@@ -21,8 +28,9 @@ export default function CallLogModal({
   customerId,
   userId,
   customer,
+  open,
+  onOpenChange,
   onSaved,
-  onClose,
 }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +38,7 @@ export default function CallLogModal({
 
   const [form, setForm] = useState({
     call_type: 'discovery' as CallType,
-    called_at: new Date().toISOString().slice(0, 16),  // datetime-local format
+    called_at: new Date().toISOString().slice(0, 16),
     duration_minutes: '',
     spoke_with_role: '',
     spoke_with_name: '',
@@ -78,18 +86,15 @@ export default function CallLogModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-sm font-semibold text-gray-900">Log Call · {customer.cafe_name}</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Log Call · {customer.cafe_name}</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2" role="alert">{error}</p>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -261,10 +266,10 @@ export default function CallLogModal({
             </Field>
           </div>
 
-          <div className="flex gap-2 justify-end pt-2">
+          <DialogFooter>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => onOpenChange(false)}
               className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
@@ -276,17 +281,17 @@ export default function CallLogModal({
             >
               {saving ? 'Saving…' : 'Save Call Log'}
             </button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
 
-      <style>{`
-        .input-field  { width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.375rem 0.625rem; font-size: 0.875rem; outline: none; }
-        .input-field:focus { border-color: #6ee7b7; box-shadow: 0 0 0 2px rgba(110,231,183,0.3); }
-        .select-field { width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.375rem 0.625rem; font-size: 0.875rem; background: white; outline: none; }
-        .select-field:focus { border-color: #6ee7b7; box-shadow: 0 0 0 2px rgba(110,231,183,0.3); }
-      `}</style>
-    </div>
+        <style>{`
+          .input-field  { width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.375rem 0.625rem; font-size: 0.875rem; outline: none; }
+          .input-field:focus { border-color: #6ee7b7; box-shadow: 0 0 0 2px rgba(110,231,183,0.3); }
+          .select-field { width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.375rem 0.625rem; font-size: 0.875rem; background: white; outline: none; }
+          .select-field:focus { border-color: #6ee7b7; box-shadow: 0 0 0 2px rgba(110,231,183,0.3); }
+        `}</style>
+      </DialogContent>
+    </Dialog>
   )
 }
 

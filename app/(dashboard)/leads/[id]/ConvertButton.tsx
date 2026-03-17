@@ -47,7 +47,7 @@ export default function ConvertButton({ lead, canEdit }: Props) {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="w-full px-4 py-2 text-sm font-medium rounded-md transition-colors bg-green-600 text-white hover:bg-green-700"
+        className="w-full px-4 py-2 text-sm font-medium rounded-md transition-colors bg-slate-800 text-white hover:bg-slate-900"
       >
         Convert to Opportunity
       </button>
@@ -95,7 +95,7 @@ export default function ConvertButton({ lead, canEdit }: Props) {
               <button
                 onClick={handleConvert}
                 disabled={converting}
-                className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white hover:bg-slate-900 transition-colors disabled:opacity-50"
               >
                 {converting ? 'Converting...' : 'Convert'}
               </button>

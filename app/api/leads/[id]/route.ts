@@ -31,7 +31,7 @@ export async function PATCH(
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
 
-  if (profile?.role !== 'admin' && profile?.role !== 'lead_gen') {
+  if (!profile) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 

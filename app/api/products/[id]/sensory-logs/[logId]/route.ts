@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth'
 
 export async function DELETE(
   _request: Request,
@@ -12,7 +13,7 @@ export async function DELETE(
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') {
+  if (!isAdmin(profile?.role)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 

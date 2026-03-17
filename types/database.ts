@@ -96,6 +96,26 @@ export type InventoryTransaction    = Database['public']['Tables']['inventory_tr
 export type USOutboundOrder         = Database['public']['Tables']['us_outbound_orders']['Row']
 export type USOutboundOrderItem     = Database['public']['Tables']['us_outbound_order_items']['Row']
 
+// Shipment task types
+export interface ShipmentTask {
+  task_id: string
+  task_type: 'sample' | 'order'
+  route: 'jp_to_us' | 'jp_to_cafe'
+  customer_name: string | null
+  assigned_to: string | null
+  created_by: string
+  status: 'open' | 'done'
+  completed_at: string | null
+  created_at: string
+}
+
+export interface ShipmentTaskItem {
+  item_id: string
+  task_id: string
+  sku_id: string
+  qty: number
+}
+
 // Supplier types
 export type Supplier               = Database['public']['Tables']['suppliers']['Row']
 export type SupplierCommunication  = Database['public']['Tables']['supplier_communications']['Row']
@@ -209,6 +229,49 @@ export type InventoryLevelWithDetails = InventoryLevel & {
 export type InventoryTransactionWithDetails = InventoryTransaction & {
   sku: Pick<Sku, 'sku_name' | 'name_external_eng'>
   warehouse: Pick<WarehouseLocation, 'name' | 'short_code'> | null
+}
+
+// ---------------------------------------------------------------------------
+// Discovery System (migration 022)
+// ---------------------------------------------------------------------------
+
+export type DiscoveryRun = {
+  run_id: string
+  source: 'gemini_tsv' | 'google_maps' | 'instagram'
+  status: 'running' | 'completed' | 'failed'
+  params: Record<string, unknown> | null
+  apify_run_id: string | null
+  results_count: number
+  imported_count: number
+  duplicates_skipped: number
+  error_message: string | null
+  created_by: string | null
+  created_at: string
+  completed_at: string | null
+}
+
+export type DiscoveredProspect = {
+  prospect_id: string
+  run_id: string
+  cafe_name: string
+  city: string | null
+  state: string | null
+  country: string | null
+  instagram_url: string | null
+  instagram_handle: string | null
+  website_url: string | null
+  phone: string | null
+  address: string | null
+  rating: number | null
+  review_count: number | null
+  serves_matcha: string | null
+  source: string
+  raw_data: Record<string, unknown> | null
+  is_duplicate: boolean
+  duplicate_of: string | null
+  imported: boolean
+  imported_at: string | null
+  created_at: string
 }
 
 // ---------------------------------------------------------------------------
@@ -1653,6 +1716,76 @@ export interface Database {
           },
         ]
       }
+      shipment_tasks: {
+        Row: {
+          task_id: string
+          task_type: string
+          route: string
+          customer_name: string | null
+          assigned_to: string | null
+          created_by: string
+          status: string
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          task_id?: string
+          task_type: string
+          route: string
+          customer_name?: string | null
+          assigned_to?: string | null
+          created_by: string
+          status?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          task_id?: string
+          task_type?: string
+          route?: string
+          customer_name?: string | null
+          assigned_to?: string | null
+          created_by?: string
+          status?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      shipment_task_items: {
+        Row: {
+          item_id: string
+          task_id: string
+          sku_id: string
+          qty: number
+        }
+        Insert: {
+          item_id?: string
+          task_id: string
+          sku_id: string
+          qty?: number
+        }
+        Update: {
+          item_id?: string
+          task_id?: string
+          sku_id?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'shipment_task_items_task_id_fkey'
+            columns: ['task_id']
+            referencedRelation: 'shipment_tasks'
+            referencedColumns: ['task_id']
+          },
+          {
+            foreignKeyName: 'shipment_task_items_sku_id_fkey'
+            columns: ['sku_id']
+            referencedRelation: 'skus'
+            referencedColumns: ['sku_id']
+          },
+        ]
+      }
       suppliers: {
         Row: {
           supplier_id: string
@@ -1979,6 +2112,18 @@ export interface Database {
           },
         ]
       }
+      discovery_runs: {
+        Row: DiscoveryRun
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      discovered_prospects: {
+        Row: DiscoveredProspect
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2011,7 +2156,7 @@ export interface Database {
         | 'qualified'
         | 'handed_off'
         | 'disqualified'
-      user_role: 'admin' | 'closer' | 'lead_gen'
+      user_role: 'owner' | 'admin' | 'member' | 'closer' | 'lead_gen'
       cafe_type_enum:
         | 'coffee_shop'
         | 'matcha_focused'

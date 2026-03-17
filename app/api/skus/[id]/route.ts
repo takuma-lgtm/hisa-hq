@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth'
 
 const ALLOWED_FIELDS = new Set([
   'sku_name', 'product_id', 'name_external_eng', 'name_internal_jpn',
@@ -18,7 +19,7 @@ export async function PATCH(
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') {
+  if (!isAdmin(profile?.role)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 

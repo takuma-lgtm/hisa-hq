@@ -71,7 +71,7 @@ export default function InventoryClient({
           {canWrite && (
             <button
               onClick={() => setShowInbound(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               Record Inventory

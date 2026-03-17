@@ -274,7 +274,7 @@ export default function ClayEnrichButton({ lead, canEdit }: Props) {
             {!isEmpty && (
               <button
                 onClick={handleSave}
-                className="text-xs font-medium px-3 py-1 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors"
+                className="text-xs font-medium px-3 py-1 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors"
               >
                 Save
               </button>

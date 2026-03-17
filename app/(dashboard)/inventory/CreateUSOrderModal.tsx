@@ -318,7 +318,7 @@ export default function CreateUSOrderModal({ skus, onClose }: Props) {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-1.5 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              className="px-4 py-1.5 text-sm rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50"
             >
               {saving ? 'Creating...' : 'Create Order'}
             </button>

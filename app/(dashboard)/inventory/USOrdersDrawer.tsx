@@ -49,7 +49,7 @@ export default function USOrdersDrawer({ open, onClose, onNewOrder, canWrite }: 
     }
     const c = config[status] ?? config.pending
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded ${c.cls}`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${c.cls}`}>
         {c.icon}
         {c.label}
       </span>
@@ -68,7 +68,7 @@ export default function USOrdersDrawer({ open, onClose, onNewOrder, canWrite }: 
             {canWrite && (
               <button
                 onClick={onNewOrder}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 transition-colors"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
                 New US Order
@@ -132,7 +132,7 @@ export default function USOrdersDrawer({ open, onClose, onNewOrder, canWrite }: 
                       </span>
                     </div>
                     {order.date_shipped && (
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
                         <span>{order.carrier}</span>
                         <span>Shipped {order.date_shipped}</span>
                         {order.tracking_number && (
@@ -145,7 +145,7 @@ export default function USOrdersDrawer({ open, onClose, onNewOrder, canWrite }: 
                         href={`/inventory/packing-slip/${order.order_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-1.5 text-[10px] text-green-600 hover:text-green-700"
+                        className="inline-flex items-center gap-1 mt-1.5 text-xs text-green-600 hover:text-green-700"
                         onClick={e => e.stopPropagation()}
                       >
                         <Printer className="w-3 h-3" />

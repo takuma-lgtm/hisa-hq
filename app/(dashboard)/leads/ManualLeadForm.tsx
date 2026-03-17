@@ -7,7 +7,6 @@ import {
   Loader2,
   Plus,
 } from 'lucide-react'
-import { usePopover } from '@/components/ui/popover'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,8 +38,7 @@ const INITIAL_FORM = {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ManualLeadForm() {
-  const { closePopover } = usePopover()
+export default function ManualLeadForm({ onClose }: { onClose?: () => void }) {
 
   const [form, setForm] = useState(INITIAL_FORM)
   const [state, setState] = useState<FormState>('idle')
@@ -219,7 +217,7 @@ export default function ManualLeadForm() {
                 onClick={() => updateField('serves_matcha', opt.value)}
                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                   form.serves_matcha === opt.value
-                    ? 'bg-green-700 text-white'
+                    ? 'bg-slate-800 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -295,7 +293,7 @@ export default function ManualLeadForm() {
       {/* Footer */}
       <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-200 shrink-0">
         <button
-          onClick={closePopover}
+          onClick={onClose}
           className="text-sm text-slate-600 hover:text-slate-800 px-3 py-1.5"
         >
           Cancel
@@ -307,7 +305,7 @@ export default function ManualLeadForm() {
             state === 'submitting' ||
             state === 'success'
           }
-          className="inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {state === 'submitting' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

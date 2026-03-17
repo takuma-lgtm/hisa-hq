@@ -87,7 +87,7 @@ export default function DailyBriefClient({
         <button
           onClick={handlePost}
           disabled={state === 'posting'}
-          className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {state === 'posting' ? (
             <>

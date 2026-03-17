@@ -312,34 +312,34 @@ export default function SuppliersTable({ suppliers: initialSuppliers, profiles, 
                     <td className="pl-6 pr-3 py-2">
                       <span className="text-sm font-medium text-slate-900">{s.supplier_name}</span>
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-600">{s.prefecture || '—'}</td>
+                    <td className="px-3 py-2 text-sm text-slate-600">{s.prefecture || '—'}</td>
                     <td className="px-3 py-2">
                       {s.business_type ? (
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[s.business_type]}`}>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[s.business_type]}`}>
                           {SUPPLIER_BUSINESS_TYPE_LABELS[s.business_type]}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-sm text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_STAGE_COLORS[s.stage]}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SUPPLIER_STAGE_COLORS[s.stage]}`}>
                         {SUPPLIER_STAGE_LABELS[s.stage]}
                       </span>
                     </td>
                     <td className="px-3 py-2">
                       {s.sample_status !== 'none' ? (
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SAMPLE_STATUS_COLORS[s.sample_status]}`}>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${SAMPLE_STATUS_COLORS[s.sample_status]}`}>
                           {SAMPLE_STATUS_LABELS[s.sample_status]}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-sm text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-500">
+                    <td className="px-3 py-2 text-sm text-slate-500">
                       {relativeDate(s.date_updated ?? s.updated_at)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-500 max-w-[120px] truncate">
+                    <td className="px-3 py-2 text-sm text-slate-500 max-w-[120px] truncate">
                       {s.source || '—'}
                     </td>
                   </tr>

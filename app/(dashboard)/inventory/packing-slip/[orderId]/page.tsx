@@ -62,7 +62,7 @@ export default async function PackingSlipPage({
       <div className="print:hidden fixed top-4 right-4 z-50">
         <button
           onClick={() => window.print()}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700"
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900"
         >
           Print (Cmd+P)
         </button>

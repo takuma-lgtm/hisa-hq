@@ -70,29 +70,27 @@ export default function ActiveSuppliersGrid({ suppliers, orders, linkedProducts,
             (supplierOrders.filter((o) => o.quality_rating).length || 1)
           : null
 
+        const qualityRating = avgQuality ? Math.round(avgQuality) : supplier.quality_rating
+        const lastContactDate = lastContact[supplier.supplier_id] ?? supplier.last_contacted_at
+
         return (
           <Link
             key={supplier.supplier_id}
             href={`/active-suppliers/${supplier.supplier_id}`}
-            className="bg-white border border-slate-200 rounded-xl p-5 hover:border-green-300 hover:shadow-sm transition-all block"
+            className="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all block cursor-pointer"
           >
             {/* Header */}
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-green-100 text-green-800 flex items-center justify-center text-sm font-bold shrink-0">
-                {supplier.supplier_name[0]}
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-slate-900 truncate">{supplier.supplier_name}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {supplier.prefecture && (
-                    <span className="text-xs text-slate-500">{supplier.prefecture}</span>
-                  )}
-                  {supplier.business_type && (
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[supplier.business_type]}`}>
-                      {SUPPLIER_BUSINESS_TYPE_LABELS[supplier.business_type]}
-                    </span>
-                  )}
-                </div>
+            <div className="mb-2">
+              <h3 className="text-sm font-semibold text-slate-900 truncate">{supplier.supplier_name}</h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                {supplier.prefecture && (
+                  <span className="text-[11px] text-slate-500">{supplier.prefecture}</span>
+                )}
+                {supplier.business_type && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[supplier.business_type]}`}>
+                    {SUPPLIER_BUSINESS_TYPE_LABELS[supplier.business_type]}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -100,7 +98,7 @@ export default function ActiveSuppliersGrid({ suppliers, orders, linkedProducts,
             {supplierProductsList.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {supplierProductsList.slice(0, 3).map((lp) => (
-                  <span key={lp.id} className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded">
+                  <span key={lp.id} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
                     {lp.product?.customer_facing_product_name ?? lp.product_name_jpn ?? '—'}
                   </span>
                 ))}
@@ -110,29 +108,21 @@ export default function ActiveSuppliersGrid({ suppliers, orders, linkedProducts,
               </div>
             )}
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <div>
-                <span className="text-slate-400">合計仕入額</span>
-                <p className="font-medium text-slate-900">{totalSpend > 0 ? formatCurrency(totalSpend) : '—'}</p>
-              </div>
-              <div>
-                <span className="text-slate-400">発注回数</span>
-                <p className="font-medium text-slate-900">{supplierOrders.length > 0 ? `${supplierOrders.length}回` : '—'}</p>
-              </div>
-              <div>
-                <span className="text-slate-400">最終発注</span>
-                <p className="font-medium text-slate-900">{relativeDate(lastOrder?.order_date ?? null)}</p>
-              </div>
-              <div>
-                <span className="text-slate-400">品質評価</span>
-                <p className="font-medium">{renderStars(avgQuality ? Math.round(avgQuality) : supplier.quality_rating)}</p>
-              </div>
-              <div>
-                <span className="text-slate-400">最終連絡</span>
-                <p className="font-medium text-slate-900">{relativeDate(lastContact[supplier.supplier_id] ?? supplier.last_contacted_at)}</p>
-              </div>
+            {/* Compact stats */}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 flex-wrap">
+              <span>{supplierOrders.length > 0 ? `${supplierOrders.length}回発注` : '発注なし'}</span>
+              <span className="text-slate-300">·</span>
+              <span>{totalSpend > 0 ? formatCurrency(totalSpend) : '¥0'}</span>
+              {qualityRating && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-amber-500">{'★'.repeat(qualityRating)}{'☆'.repeat(5 - qualityRating)}</span>
+                </>
+              )}
             </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              最終連絡 {relativeDate(lastContactDate)}
+            </p>
           </Link>
         )
       })}

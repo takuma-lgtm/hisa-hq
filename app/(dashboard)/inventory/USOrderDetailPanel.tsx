@@ -93,7 +93,7 @@ export default function USOrderDetailPanel({ order, onUpdated }: Props) {
           <button
             onClick={() => updateOrder({ status: 'delivered' })}
             disabled={saving}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50"
           >
             Mark Delivered
           </button>

@@ -167,7 +167,7 @@ export default function EnrichButton({ lead, canEdit }: Props) {
             onClick={handleEnrich}
             disabled={!hasWebsite}
             title={!hasWebsite ? 'Add a website URL first' : 'Scan website for contact info'}
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <Search className="w-3.5 h-3.5" />
             Find Contact Info
@@ -364,7 +364,7 @@ export default function EnrichButton({ lead, canEdit }: Props) {
                 disabled={
                   !selectedEmail && !selectedPhone && !selectedInstagram
                 }
-                className="text-xs font-medium px-3 py-1 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs font-medium px-3 py-1 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Selected
               </button>

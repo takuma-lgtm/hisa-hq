@@ -1,7 +1,7 @@
 'use client'
 
 import React from "react"
-import { Menu, LayoutDashboard, KanbanSquare, RefreshCw, Warehouse, Package, Inbox, LogOut, Settings } from "lucide-react"
+import { Menu, Home, Target, Repeat, Boxes, Leaf, Users, LogOut, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -32,17 +32,19 @@ import {
 } from "@/components/ui/sheet"
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
-  { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/inventory', label: 'Inventory', icon: Warehouse, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/', label: 'Dashboard', icon: Home, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/opportunities', label: 'Opportunities', icon: Target, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/recurring', label: 'Recurring', icon: Repeat, roles: ['admin', 'closer'] },
+  { href: '/products', label: 'Products', icon: Leaf, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'closer', 'lead_gen'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ] as const
 
 const ROLE_LABELS: Record<UserRole, string> = {
+  owner: 'Owner',
   admin: 'Admin',
+  member: 'Member',
   closer: 'Closer',
   lead_gen: 'Lead Gen',
 }
@@ -75,9 +77,7 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
           <div className="flex items-center gap-6">
             {/* Brand */}
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 shrink-0">
-                <span className="text-white text-xs font-bold">H</span>
-              </div>
+              <img src="/hisa-logo.png" alt="HISA" className="h-7 w-auto shrink-0" />
               <span className="text-sm font-semibold text-foreground">HISA Matcha</span>
             </Link>
 
@@ -137,7 +137,7 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
         {/* Mobile navbar */}
         <div className="flex h-14 items-center justify-between lg:hidden">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 shrink-0">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 shrink-0">
               <span className="text-white text-xs font-bold">H</span>
             </div>
             <span className="text-sm font-semibold text-foreground">HISA Matcha</span>
@@ -152,7 +152,7 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
               <SheetHeader>
                 <SheetTitle>
                   <Link href="/" className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 shrink-0">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 shrink-0">
                       <span className="text-white text-xs font-bold">H</span>
                     </div>
                     <span className="text-sm font-semibold">HISA Matcha</span>

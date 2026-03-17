@@ -12,8 +12,8 @@ export default function HandoffSummaryCard({ opportunity, customer }: Props) {
   const nextAction = STAGE_NEXT_ACTION[opportunity.stage]
 
   return (
-    <div className="m-4 rounded-xl border border-green-200 bg-green-50 p-4">
-      <h2 className="text-xs font-semibold text-green-800 uppercase tracking-wider mb-3">
+    <div className="m-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <h2 className="text-xs font-semibold text-slate-800 uppercase tracking-wider mb-3">
         Handoff Summary
       </h2>
 

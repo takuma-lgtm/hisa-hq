@@ -134,7 +134,7 @@ export default function SKUDetailExpansion({ skuId, skuName }: Props) {
                       <td className="py-1.5 pr-3 text-slate-600">{date}</td>
                       <td className="py-1.5 pr-3 font-medium text-slate-700">{txn.transaction_ref || '—'}</td>
                       <td className="py-1.5 pr-3">
-                        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${movement?.color || 'bg-slate-50 text-slate-600'}`}>
+                        <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${movement?.color || 'bg-slate-50 text-slate-600'}`}>
                           {movement?.label || txn.movement_type}
                         </span>
                       </td>
@@ -169,12 +169,12 @@ export default function SKUDetailExpansion({ skuId, skuName }: Props) {
                   <div key={order.order_id} className="bg-white border border-slate-200 rounded-lg px-3 py-2">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-slate-900">{order.order_number}</span>
-                      <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${STATUS_COLORS[order.status] || STATUS_COLORS.pending}`}>
+                      <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${STATUS_COLORS[order.status] || STATUS_COLORS.pending}`}>
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-600">{order.customer_name}</p>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
+                    <div className="flex items-center justify-between mt-1 text-xs text-slate-400">
                       <span>{item ? `${item.quantity}x ${item.sku_name}` : ''}</span>
                       <span>{order.date_shipped || '—'}</span>
                     </div>
@@ -182,7 +182,7 @@ export default function SKUDetailExpansion({ skuId, skuName }: Props) {
                       href={`/inventory/packing-slip/${order.order_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 mt-1.5 text-[10px] text-green-600 hover:text-green-700"
+                      className="flex items-center gap-1 mt-1.5 text-xs text-green-600 hover:text-green-700"
                     >
                       <Printer className="w-3 h-3" />
                       Packing Slip

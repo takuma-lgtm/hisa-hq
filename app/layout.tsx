@@ -16,9 +16,6 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Hisa HQ",
   description: "Internal CRM for HISA Matcha — lead management, sampling, and recurring orders.",
-  icons: {
-    icon: "/icon.svg",
-  },
 };
 
 export default function RootLayout({

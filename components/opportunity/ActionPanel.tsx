@@ -210,16 +210,15 @@ export default function ActionPanel({
       )}
 
       {/* Modals */}
-      {modal === 'call' && (
-        <CallLogModal
-          opportunityId={opportunity.opportunity_id}
-          customerId={opportunity.customer_id}
-          userId={userProfile.id}
-          customer={opportunity.customer}
-          onSaved={(log) => { onCallLogged(log); setModal(null) }}
-          onClose={() => setModal(null)}
-        />
-      )}
+      <CallLogModal
+        opportunityId={opportunity.opportunity_id}
+        customerId={opportunity.customer_id}
+        userId={userProfile.id}
+        customer={opportunity.customer}
+        open={modal === 'call'}
+        onOpenChange={(open) => { if (!open) setModal(null) }}
+        onSaved={(log) => { onCallLogged(log); setModal(null) }}
+      />
 
       {modal === 'proposal' && (
         <ProposalBuilder
@@ -284,7 +283,7 @@ interface ActionButtonProps {
 
 function ActionButton({ icon, label, onClick, variant, loading }: ActionButtonProps) {
   const styles = {
-    primary: 'bg-green-600 hover:bg-green-700 text-white',
+    primary: 'bg-slate-800 hover:bg-slate-900 text-white',
     default: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300',
     danger: 'bg-white hover:bg-red-50 text-red-600 border border-red-200',
   }

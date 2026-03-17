@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { UserRole } from '@/types/database'
-import LeadsTable from './LeadsTable'
 import AddLeadsButton from './AddLeadsButton'
+import LeadsTabSwitcher from './LeadsTabSwitcher'
+import LeadsPageContent from './LeadsPageContent'
 
 export default async function LeadsPage() {
   const supabase = await createClient()
@@ -41,7 +42,6 @@ export default async function LeadsPage() {
     for (const log of logs ?? []) {
       const entry = byCustomer.get(log.customer_id) ?? { dates: [], latestStatus: null }
       entry.dates.push(log.created_at)
-      // First log per customer (ordered DESC) is the latest
       if (entry.latestStatus === null) entry.latestStatus = log.status
       byCustomer.set(log.customer_id, entry)
     }
@@ -71,16 +71,16 @@ export default async function LeadsPage() {
         {canImport && <AddLeadsButton />}
       </div>
 
-      {leads?.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-          No leads yet.{' '}
-          {canImport
-            ? 'Click "Add Leads" to import your lead list.'
-            : 'Ask Takuma or Nina to import the lead list.'}
-        </div>
-      ) : (
-        <LeadsTable leads={leads ?? []} profiles={profiles ?? []} outreachStats={outreachStats} canEdit={canEdit} />
-      )}
+      {/* Leads / Discover tabs */}
+      <LeadsTabSwitcher />
+
+      {/* Tab content */}
+      <LeadsPageContent
+        leads={leads ?? []}
+        profiles={profiles ?? []}
+        outreachStats={outreachStats}
+        canEdit={canEdit}
+      />
     </div>
   )
 }

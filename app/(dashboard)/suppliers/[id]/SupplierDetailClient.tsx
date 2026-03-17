@@ -171,7 +171,7 @@ export default function SupplierDetailClient({
             <Button
               onClick={handleConvert}
               disabled={converting}
-              className="bg-green-700 hover:bg-green-800 text-white text-sm gap-1.5"
+              className="bg-slate-800 hover:bg-slate-900 text-white text-sm gap-1.5"
             >
               <Handshake className="w-4 h-4" />
               {converting ? '変更中...' : '取引成立に変更'}
@@ -340,7 +340,7 @@ export default function SupplierDetailClient({
                     <button
                       onClick={handleSendComm}
                       disabled={sending || !messageBody.trim()}
-                      className="self-end p-2 bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-50"
+                      className="self-end p-2 bg-slate-800 text-white rounded hover:bg-slate-900 disabled:opacity-50"
                     >
                       <Send className="w-4 h-4" />
                     </button>

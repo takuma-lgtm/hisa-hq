@@ -38,7 +38,7 @@ export default function TastingLogTab({ productId, isAdmin }: Props) {
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+          className="w-full py-2 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
         >
           + Add Tasting Entry
         </button>
@@ -320,7 +320,7 @@ function TastingForm({
         <button
           type="submit"
           disabled={saving || !tasterName.trim() || !flavorNotes.trim()}
-          className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+          className="px-3 py-1.5 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 disabled:opacity-50 transition-colors"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>

@@ -458,7 +458,7 @@ export default function InvoiceCreator({
       <button
         onClick={handleCreate}
         disabled={creating || invoiceTotal <= 0 || !selectedMethod}
-        className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+        className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-xs font-medium py-2 rounded-lg transition-colors"
       >
         {creating
           ? 'Creating Invoice...'

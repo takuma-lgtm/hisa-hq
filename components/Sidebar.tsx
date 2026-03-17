@@ -14,20 +14,20 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import {
-  LayoutDashboard,
-  KanbanSquare,
-  RefreshCw,
-  Package,
+  Home,
+  Target,
+  Repeat,
+  Leaf,
   LogOut,
-  Inbox,
+  Users,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/leads', label: 'Leads', icon: Inbox, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/opportunities', label: 'Opportunities', icon: KanbanSquare, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/recurring', label: 'Recurring', icon: RefreshCw, roles: ['admin', 'closer'] },
-  { href: '/products', label: 'Products', icon: Package, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/', label: 'Dashboard', icon: Home, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/opportunities', label: 'Opportunities', icon: Target, roles: ['admin', 'closer', 'lead_gen'] },
+  { href: '/recurring', label: 'Recurring', icon: Repeat, roles: ['admin', 'closer'] },
+  { href: '/products', label: 'Products', icon: Leaf, roles: ['admin', 'closer', 'lead_gen'] },
 ] as const
 
 interface SidebarProps {
@@ -151,9 +151,7 @@ function Logo() {
       href="/"
       className="flex items-center gap-2.5 py-1 relative z-20"
     >
-      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 flex-shrink-0">
-        <span className="text-white text-xs font-bold">H</span>
-      </div>
+      <img src="/hisa-logo.png" alt="HISA" className="h-7 w-auto flex-shrink-0" />
     </Link>
   )
 }
@@ -164,9 +162,7 @@ function LogoIcon() {
       href="/"
       className="flex items-center gap-2.5 py-1 relative z-20"
     >
-      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-700 flex-shrink-0">
-        <span className="text-white text-xs font-bold">H</span>
-      </div>
+      <img src="/hisa-logo.png" alt="HISA" className="h-7 w-auto flex-shrink-0" />
     </Link>
   )
 }

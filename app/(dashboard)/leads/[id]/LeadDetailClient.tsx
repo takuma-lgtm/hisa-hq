@@ -242,7 +242,7 @@ export default function LeadDetailClient({ lead, profiles, canEdit }: Props) {
                 <button
                   onClick={handleSave}
                   disabled={!isDirty || saveState === 'saving'}
-                  className="text-sm font-medium px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-sm font-medium px-4 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saveState === 'saving' ? 'Saving…' : 'Save'}
                 </button>
@@ -401,6 +401,7 @@ export default function LeadDetailClient({ lead, profiles, canEdit }: Props) {
           canEdit={canEdit}
           onMessageSent={() => { setRefreshKey((k) => k + 1); setDraftMessage(undefined) }}
           initialMessage={draftMessage}
+          leadStage={lead.lead_stage ?? undefined}
         />
         <div className="mt-4">
           <OutreachTimeline

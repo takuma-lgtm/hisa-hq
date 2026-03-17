@@ -17,12 +17,12 @@ export default function AddLeadsButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-green-700 hover:bg-green-800 text-white">
+        <Button className="bg-slate-800 hover:bg-slate-900 text-white">
           <Plus className="w-3.5 h-3.5 mr-1.5" />
           Add Leads
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-auto p-0">
+      <DialogContent className="sm:max-w-5xl max-h-[85vh] overflow-auto p-0">
         <DialogTitle className="sr-only">Add Leads</DialogTitle>
         <AddLeadsPanel onClose={() => setOpen(false)} />
       </DialogContent>

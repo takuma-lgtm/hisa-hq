@@ -155,7 +155,7 @@ export default function OutreachTimeline({ leadId, canEdit, refreshKey, onFollow
                     />
                     <button
                       onClick={() => saveReply(msg.log_id)}
-                      className="px-2 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+                      className="px-2 py-1 text-xs font-medium rounded-md bg-slate-800 text-white hover:bg-slate-900"
                     >
                       Save
                     </button>

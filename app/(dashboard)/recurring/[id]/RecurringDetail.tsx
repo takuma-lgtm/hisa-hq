@@ -188,7 +188,7 @@ export default function RecurringDetail({ customer, orders, invoices: initialInv
           {canEdit && !showCreator && (
             <button
               onClick={() => setShowCreator(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 border border-green-200 rounded-lg px-3 py-1.5 hover:bg-green-50 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-slate-800 border border-slate-200 rounded-lg px-3 py-1.5 hover:bg-slate-50 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> New Invoice
             </button>

@@ -160,7 +160,7 @@ export default function LeadSidePanel({ lead, canEdit, onClose, onDataChanged, o
           <button
             onClick={handleAdvanceStage}
             disabled={advancing}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50 transition-colors"
           >
             {advancing ? 'Updating...' : nextStep.label}
             {!advancing && <ChevronRight className="w-4 h-4" />}
@@ -173,7 +173,7 @@ export default function LeadSidePanel({ lead, canEdit, onClose, onDataChanged, o
             <button
               onClick={handlePromote}
               disabled={promoting}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50 transition-colors"
             >
               {promoting ? 'Promoting...' : 'Promote to Opportunity'}
               {!promoting && <ChevronRight className="w-4 h-4" />}
@@ -189,6 +189,7 @@ export default function LeadSidePanel({ lead, canEdit, onClose, onDataChanged, o
           canEdit={canEdit}
           onMessageSent={handleMessageSent}
           initialMessage={draftMessage}
+          leadStage={localStage}
         />
 
         {/* Message history */}
@@ -206,7 +207,7 @@ export default function LeadSidePanel({ lead, canEdit, onClose, onDataChanged, o
       <div className="px-4 py-2 border-t border-slate-200 shrink-0">
         <Link
           href={`/leads/${lead.customer_id}`}
-          className="text-xs text-green-600 hover:text-green-700 hover:underline"
+          className="text-xs text-slate-600 hover:text-slate-700 hover:underline"
         >
           Open Full Detail →
         </Link>

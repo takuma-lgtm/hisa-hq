@@ -54,7 +54,7 @@ function InlineField({ label, value, onSave, type = 'text', placeholder, require
           onChange={(e) => setDraft(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-          className="w-full text-sm border border-green-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="w-full text-sm border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-slate-400"
           disabled={saving}
         />
       </div>

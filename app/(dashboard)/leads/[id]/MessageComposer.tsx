@@ -9,6 +9,7 @@ interface Props {
   canEdit: boolean
   onMessageSent: () => void
   initialMessage?: string
+  leadStage?: string
 }
 
 const CHANNELS: { value: MessageChannel; label: string }[] = [
@@ -16,6 +17,8 @@ const CHANNELS: { value: MessageChannel; label: string }[] = [
   { value: 'whatsapp', label: 'WhatsApp' },
   { value: 'email', label: 'Email' },
 ]
+
+const WHATSAPP_STAGES = new Set(['replied', 'qualified', 'handed_off'])
 
 function cleanPhoneForWhatsApp(phone: string): string {
   return phone.replace(/[^0-9]/g, '')
@@ -32,16 +35,14 @@ function extractIgHandle(url: string): string | null {
   }
 }
 
-export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, initialMessage }: Props) {
+export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, initialMessage, leadStage }: Props) {
   const hasIg = !!lead.instagram_url
   const hasPhone = !!(lead as Record<string, unknown>).phone
   const hasEmail = !!(lead as Record<string, unknown>).email
   const phoneNum = (lead as Record<string, unknown>).phone as string | undefined
   const emailAddr = (lead as Record<string, unknown>).email as string | undefined
 
-  const defaultChannel: MessageChannel = hasIg ? 'instagram_dm' : hasPhone ? 'whatsapp' : hasEmail ? 'email' : 'instagram_dm'
-
-  const [channel, setChannel] = useState<MessageChannel>(defaultChannel)
+  const [channel, setChannel] = useState<MessageChannel>('instagram_dm')
   const [message, setMessage] = useState(initialMessage ?? '')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,35 +55,6 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
 
   if (!canEdit) return null
 
-  // No contact info fallback
-  if (!hasIg && !hasPhone && !hasEmail) {
-    const cafeName = lead.cafe_name ?? ''
-    const city = lead.city ?? ''
-    return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
-        <p className="text-sm text-amber-800 font-medium">No Instagram or email found for this lead.</p>
-        <div className="flex gap-2">
-          <a
-            href={`https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cafeName)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-pink-100 text-pink-700 hover:bg-pink-200 transition-colors"
-          >
-            Search Instagram
-          </a>
-          <a
-            href={`https://www.google.com/search?q=${encodeURIComponent(`${cafeName} ${city} instagram`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-          >
-            Search Google
-          </a>
-        </div>
-      </div>
-    )
-  }
-
   async function handleSend() {
     if (!message.trim()) return
     setSending(true)
@@ -91,23 +63,39 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
 
     try {
       // Channel-specific behavior
-      if (channel === 'instagram_dm' && lead.instagram_url) {
-        const handle = extractIgHandle(lead.instagram_url)
-        if (handle) {
-          await navigator.clipboard.writeText(message.trim())
-          window.open(`https://ig.me/m/${handle}`, '_blank')
-          setFeedback('Message copied to clipboard! Opening Instagram...')
-        }
-      } else if (channel === 'whatsapp' && phoneNum) {
-        const cleaned = cleanPhoneForWhatsApp(phoneNum)
+      if (channel === 'instagram_dm') {
         await navigator.clipboard.writeText(message.trim())
-        window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(message.trim())}`, '_blank')
-        setFeedback('Opening WhatsApp...')
-      } else if (channel === 'email' && emailAddr) {
+        if (lead.instagram_url) {
+          const handle = extractIgHandle(lead.instagram_url)
+          if (handle) {
+            window.open(`https://ig.me/m/${handle}`, '_blank')
+            setFeedback('Message copied! Opening Instagram DM...')
+          }
+        } else {
+          const cafeName = lead.cafe_name ?? ''
+          window.open(`https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cafeName)}`, '_blank')
+          setFeedback('Message copied! Opening Instagram search...')
+        }
+      } else if (channel === 'whatsapp') {
+        await navigator.clipboard.writeText(message.trim())
+        if (phoneNum) {
+          const cleaned = cleanPhoneForWhatsApp(phoneNum)
+          window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(message.trim())}`, '_blank')
+          setFeedback('Opening WhatsApp...')
+        } else {
+          setFeedback('Message copied! No phone number on file — paste manually in WhatsApp.')
+        }
+      } else if (channel === 'email') {
         const subject = encodeURIComponent('Matcha Partnership - Hisa Matcha')
         const body = encodeURIComponent(message.trim())
-        window.open(`mailto:${emailAddr}?subject=${subject}&body=${body}`, '_blank')
-        setFeedback('Opening email client...')
+        await navigator.clipboard.writeText(message.trim())
+        if (emailAddr) {
+          window.open(`mailto:${emailAddr}?subject=${subject}&body=${body}`, '_blank')
+          setFeedback('Opening email client...')
+        } else {
+          window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
+          setFeedback('Message copied! Opening email client...')
+        }
       }
 
       // Log the message
@@ -138,33 +126,23 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
     }
   }
 
-  const igDisabled = !hasIg
-  const waDisabled = !hasPhone
-  const emailDisabled = !hasEmail
-
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
       {/* Channel selector */}
       <div className="flex gap-1 p-0.5 bg-muted rounded-md w-fit">
-        {CHANNELS.map((ch) => {
-          const disabled = ch.value === 'instagram_dm' ? igDisabled : ch.value === 'whatsapp' ? waDisabled : emailDisabled
-          return (
-            <button
-              key={ch.value}
-              onClick={() => !disabled && setChannel(ch.value)}
-              disabled={disabled}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                channel === ch.value
-                  ? 'bg-white text-foreground shadow-sm font-medium'
-                  : disabled
-                    ? 'text-muted-foreground/40 cursor-not-allowed'
-                    : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {ch.label}
-            </button>
-          )
-        })}
+        {CHANNELS.filter(c => c.value !== 'whatsapp' || WHATSAPP_STAGES.has(leadStage || '')).map((ch) => (
+          <button
+            key={ch.value}
+            onClick={() => setChannel(ch.value)}
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              channel === ch.value
+                ? 'bg-white text-foreground shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {ch.label}
+          </button>
+        ))}
       </div>
 
       {/* Message textarea */}

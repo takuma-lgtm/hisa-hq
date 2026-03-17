@@ -190,13 +190,12 @@ export default function KanbanBoard({ initialOpportunities, userRole }: KanbanBo
         </DragOverlay>
       </DndContext>
 
-      {pendingHandoff && (
-        <HandoffModal
-          opportunityId={pendingHandoff.oppId}
-          onConfirm={handleHandoffConfirm}
-          onCancel={() => setPendingHandoff(null)}
-        />
-      )}
+      <HandoffModal
+        opportunityId={pendingHandoff?.oppId ?? ''}
+        open={!!pendingHandoff}
+        onOpenChange={(open) => { if (!open) setPendingHandoff(null) }}
+        onConfirm={handleHandoffConfirm}
+      />
     </div>
   )
 }

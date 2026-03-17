@@ -22,7 +22,7 @@ export default function CompetitorGrid({ products, selectedId, isAdmin, onSelect
         </p>
         <button
           onClick={onAdd}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
           Add Evaluation

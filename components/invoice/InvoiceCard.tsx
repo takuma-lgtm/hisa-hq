@@ -296,7 +296,7 @@ export default function InvoiceCard({
           {isManualConfirm && canEdit && !confirmPaid && (
             <button
               onClick={() => setConfirmPaid(true)}
-              className="w-full bg-green-700 hover:bg-green-800 text-white text-xs font-medium py-1.5 rounded-lg transition-colors"
+              className="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-1.5 rounded-lg transition-colors"
             >
               Mark as Paid
             </button>
@@ -315,7 +315,7 @@ export default function InvoiceCard({
                 <button
                   onClick={handleMarkPaid}
                   disabled={markingPaid}
-                  className="flex-1 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-xs font-medium py-1.5 rounded transition-colors"
+                  className="flex-1 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-xs font-medium py-1.5 rounded transition-colors"
                 >
                   {markingPaid ? 'Confirming...' : 'Confirm Paid'}
                 </button>

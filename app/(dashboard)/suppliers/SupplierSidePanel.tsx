@@ -345,7 +345,7 @@ export default function SupplierSidePanel({
           <InlineField label="Web" value={supplier.website_url} field="website_url" canEdit={canEdit} onSave={handleInlineSave} />
           {supplier.website_url && (
             <a href={supplier.website_url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[10px] text-green-700 hover:underline ml-[72px]">
+              className="inline-flex items-center gap-1 text-[10px] text-slate-700 hover:underline ml-[72px]">
               <ExternalLink className="w-2.5 h-2.5" />開く
             </a>
           )}
@@ -435,7 +435,7 @@ export default function SupplierSidePanel({
               <button
                 onClick={handleSendMessage}
                 disabled={sending || !messageBody.trim()}
-                className="self-end p-2 bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-50"
+                className="self-end p-2 bg-slate-800 text-white rounded hover:bg-slate-900 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>

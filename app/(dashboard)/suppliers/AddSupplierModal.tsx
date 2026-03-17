@@ -60,7 +60,7 @@ export default function AddSupplierModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-green-700 hover:bg-green-800 text-white text-sm gap-1.5">
+        <Button className="bg-slate-800 hover:bg-slate-900 text-white text-sm gap-1.5">
           <Plus className="w-4 h-4" />
           Add Supplier
         </Button>
@@ -141,7 +141,7 @@ export default function AddSupplierModal() {
             <Button
               type="submit"
               disabled={saving || !name.trim() || !nameEn.trim()}
-              className="bg-green-700 hover:bg-green-800 text-white"
+              className="bg-slate-800 hover:bg-slate-900 text-white"
             >
               {saving ? '保存中...' : '追加'}
             </Button>

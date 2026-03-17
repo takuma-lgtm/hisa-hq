@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { OPPORTUNITY_TABLE_STAGES } from '@/lib/constants'
-import { Clock, AlertTriangle, CircleAlert, Package, Sprout, MessageCircle, Phone, FileText, Gift } from 'lucide-react'
 import DashboardMetrics from './components/DashboardMetrics'
-import DashboardNeedsAttention, { type AttentionItem } from './components/DashboardNeedsAttention'
-import DashboardPipeline from './components/DashboardPipeline'
-import DashboardActivity, { type ActivityItem } from './components/DashboardActivity'
+import DashboardFocusProducts from './components/DashboardFocusProducts'
+import DashboardShipments from './components/DashboardShipments'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -14,9 +12,6 @@ export default async function DashboardPage() {
 
   const service = createServiceClient()
   const now = new Date()
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
-  const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString()
 
   // All queries in parallel
   const [
@@ -28,17 +23,16 @@ export default async function DashboardPage() {
     { data: inventoryLevels },
     { data: exchangeRateSetting },
     { data: allLevels },
-    { data: staleLeads },
-    { data: staleOpps },
-    { data: inTransitBatches },
-    { count: wonThisMonth },
-    { count: lostThisMonth },
-    { data: recentMessages },
-    { data: recentTransactions },
-    { data: recentCalls },
-    { data: recentProposals },
-    { data: recentSamples },
     { data: supplierData },
+    { data: shipmentTasks },
+    { data: shipmentTaskItems },
+    { data: usOrdersRaw },
+    { data: usOrderItemsRaw },
+    { data: focusProductCategoriesSetting },
+    { data: allProducts },
+    { data: allSkus },
+    { data: allInventoryLevels },
+    { data: teamProfiles },
   ] = await Promise.all([
     // Metric 1: Active leads
     service
@@ -84,76 +78,55 @@ export default async function DashboardPage() {
     service
       .from('inventory_levels')
       .select('quantity, sku:skus(sku_id, sku_name, name_external_eng)'),
-    // Attention: Stale leads (contacted > 3 days ago, no reply)
-    service
-      .from('customers')
-      .select('customer_id, cafe_name, date_contacted')
-      .eq('status', 'lead')
-      .eq('lead_stage', 'contacted')
-      .lt('date_contacted', threeDaysAgo)
-      .order('date_contacted')
-      .limit(5),
-    // Attention: Stale opportunities
-    service
-      .from('opportunities')
-      .select('opportunity_id, stage, updated_at, customers(cafe_name)')
-      .in('stage', OPPORTUNITY_TABLE_STAGES)
-      .lt('updated_at', fiveDaysAgo)
-      .order('updated_at')
-      .limit(5),
-    // Attention: In-transit sample batches
-    service
-      .from('sample_batches')
-      .select('batch_id, tracking_number, customer_id, ship_from')
-      .not('tracking_number', 'is', null)
-      .neq('delivery_status', 'Delivered')
-      .limit(5),
-    // Pipeline: Won this month
-    service
-      .from('opportunities')
-      .select('*', { count: 'exact', head: true })
-      .eq('stage', 'deal_won')
-      .gte('updated_at', firstOfMonth),
-    // Pipeline: Lost this month
-    service
-      .from('opportunities')
-      .select('*', { count: 'exact', head: true })
-      .in('stage', ['lost', 'disqualified'])
-      .gte('updated_at', firstOfMonth),
-    // Activity: Messages
-    service
-      .from('instagram_logs')
-      .select('log_id, created_at, message_sent, customer_id')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    // Activity: Inventory transactions
-    service
-      .from('inventory_transactions')
-      .select('transaction_id, created_at, transaction_ref, qty_change, movement_type, sku:skus(sku_name)')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    // Activity: Calls
-    service
-      .from('call_logs')
-      .select('log_id, created_at, call_type, customer_id')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    // Activity: Proposals
-    service
-      .from('opportunity_proposals')
-      .select('proposal_id, created_at, opportunity_id, sent_via')
-      .order('created_at', { ascending: false })
-      .limit(10),
-    // Activity: Sample batches
-    service
-      .from('sample_batches')
-      .select('batch_id, created_at, customer_id, ship_from')
-      .order('created_at', { ascending: false })
-      .limit(10),
     // Supplier pipeline
     service
       .from('suppliers')
       .select('supplier_id, stage, sample_status'),
+    // Shipment tasks (open)
+    service
+      .from('shipment_tasks')
+      .select('*')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false }),
+    // Shipment task items with SKU info
+    service
+      .from('shipment_task_items')
+      .select('*, sku:skus(sku_id, sku_name, sku_type)'),
+    // US outbound orders (pending/packed)
+    service
+      .from('us_outbound_orders')
+      .select('order_id, order_number, customer_name, status, created_at')
+      .in('status', ['pending', 'packed'])
+      .order('created_at', { ascending: false }),
+    // US order items
+    service
+      .from('us_outbound_order_items')
+      .select('order_id, sku_name, quantity'),
+    // Focus product categories setting
+    service
+      .from('crm_settings')
+      .select('value')
+      .eq('key', 'focus_product_categories')
+      .single(),
+    // All active products (for focus picker)
+    service
+      .from('products')
+      .select('product_id, customer_facing_product_name, selling_price_usd, gross_profit_margin, active')
+      .eq('active', true),
+    // All active SKUs (for task creation)
+    service
+      .from('skus')
+      .select('sku_id, sku_name, sku_type, product_id')
+      .eq('is_active', true)
+      .order('sku_name'),
+    // All inventory levels (for stock display in tasks)
+    service
+      .from('inventory_levels')
+      .select('sku_id, warehouse_id, quantity, in_transit_qty, warehouse:warehouse_locations(short_code)'),
+    // Team profiles
+    service
+      .from('profiles')
+      .select('id, name'),
   ])
 
   // Compute metrics
@@ -182,13 +155,6 @@ export default async function DashboardPage() {
     skuTotals[skuId].total += level.quantity
   }
   const lowStockSkus = Object.entries(skuTotals).filter(([, v]) => v.total > 0 && v.total < 5)
-  const outOfStockSkus = Object.entries(skuTotals).filter(([, v]) => v.total === 0)
-
-  // Pipeline stage counts
-  const stageCounts: Record<string, number> = {}
-  for (const opp of activeOpps ?? []) {
-    stageCounts[opp.stage] = (stageCounts[opp.stage] ?? 0) + 1
-  }
 
   // Metric cards
   const metricCards = [
@@ -202,112 +168,54 @@ export default async function DashboardPage() {
     { label: 'Supplier Pipeline', value: `${(supplierData ?? []).filter((s) => s.stage !== 'deal_established' && s.stage !== 'ng').length} in pipeline` },
   ]
 
-  // Needs attention items
-  const attentionItems: AttentionItem[] = []
+  // ── Focus Products ──
+  const focusProductCategories = focusProductCategoriesSetting?.value ?? JSON.stringify({ price_sensitive: [], one_fits_all: [], edge: [] })
 
-  for (const lead of staleLeads ?? []) {
-    const days = Math.floor((now.getTime() - new Date(lead.date_contacted ?? '').getTime()) / 86400000)
-    attentionItems.push({
-      icon: <Clock className="w-4 h-4 text-amber-500" />,
-      label: `${lead.cafe_name} — no reply in ${days} days`,
-      href: '/leads',
-    })
+  // Build stock totals per product for focus display
+  const productStockMap: Record<string, { jp: number; us: number; in_transit: number }> = {}
+  for (const level of allInventoryLevels ?? []) {
+    const sku = (allSkus ?? []).find((s) => s.sku_id === level.sku_id)
+    if (!sku || !sku.product_id) continue
+    const pid = sku.product_id
+    if (!productStockMap[pid]) productStockMap[pid] = { jp: 0, us: 0, in_transit: 0 }
+    const wh = level.warehouse as unknown as { short_code: string } | null
+    const code = wh?.short_code ?? 'JP'
+    if (code === 'JP') productStockMap[pid].jp += level.quantity
+    else if (code === 'US') productStockMap[pid].us += level.quantity
+    productStockMap[pid].in_transit += ((level as Record<string, unknown>).in_transit_qty as number ?? 0)
   }
 
-  for (const opp of staleOpps ?? []) {
-    const cust = opp.customers as Record<string, unknown> | null
-    const days = Math.floor((now.getTime() - new Date(opp.updated_at).getTime()) / 86400000)
-    attentionItems.push({
-      icon: <Clock className="w-4 h-4 text-amber-500" />,
-      label: `${cust?.cafe_name ?? 'Unknown'} — in stage for ${days} days`,
-      href: `/opportunities?selected=${opp.opportunity_id}`,
-    })
+  // ── Shipment Tasks ──
+  // Build stock map for task items
+  const taskStockMap: Record<string, Record<string, number>> = {}
+  for (const level of allInventoryLevels ?? []) {
+    const wh = level.warehouse as unknown as { short_code: string } | null
+    const code = wh?.short_code ?? 'JP'
+    if (!taskStockMap[level.sku_id]) taskStockMap[level.sku_id] = {}
+    taskStockMap[level.sku_id][code] = level.quantity
   }
 
-  for (const [, sku] of lowStockSkus.slice(0, 3)) {
-    attentionItems.push({
-      icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-      label: `${sku.name} — ${sku.total} units remaining`,
-      href: '/inventory',
-    })
-  }
+  // Assemble tasks with items
+  const tasksWithItems = (shipmentTasks ?? []).map((task) => ({
+    ...task,
+    task_type: task.task_type as 'sample' | 'order',
+    route: task.route as 'jp_to_us' | 'jp_to_cafe',
+    status: task.status as 'open' | 'done',
+    items: (shipmentTaskItems ?? [])
+      .filter((i) => i.task_id === task.task_id)
+      .map((i) => ({
+        ...i,
+        stock: taskStockMap[i.sku_id] ?? {},
+      })),
+  }))
 
-  for (const [, sku] of outOfStockSkus.slice(0, 2)) {
-    attentionItems.push({
-      icon: <CircleAlert className="w-4 h-4 text-red-500" />,
-      label: `${sku.name} — out of stock`,
-      href: '/inventory',
-    })
-  }
-
-  for (const batch of inTransitBatches ?? []) {
-    attentionItems.push({
-      icon: <Package className="w-4 h-4 text-blue-500" />,
-      label: `Samples (${batch.tracking_number}) — in transit from ${batch.ship_from}`,
-      href: '/inventory',
-    })
-  }
-
-  // Supplier attention items
-  const awaitingSamples = (supplierData ?? []).filter((s) => s.sample_status === 'waiting')
-  if (awaitingSamples.length > 0) {
-    attentionItems.push({
-      icon: <Sprout className="w-4 h-4 text-green-600" />,
-      label: `${awaitingSamples.length} supplier(s) awaiting samples`,
-      href: '/suppliers',
-    })
-  }
-
-  // Activity feed — merge and sort
-  const activities: ActivityItem[] = []
-
-  for (const msg of recentMessages ?? []) {
-    activities.push({
-      icon: <MessageCircle className="w-4 h-4 text-blue-500" />,
-      description: msg.message_sent ? `Sent: "${msg.message_sent.slice(0, 50)}${msg.message_sent.length > 50 ? '…' : ''}"` : 'Message sent',
-      timestamp: msg.created_at,
-      href: '/leads',
-    })
-  }
-
-  for (const tx of recentTransactions ?? []) {
-    const sku = tx.sku as Record<string, unknown> | null
-    activities.push({
-      icon: <Package className="w-4 h-4 text-slate-500" />,
-      description: `${tx.transaction_ref ?? tx.movement_type}: ${tx.qty_change} × ${sku?.sku_name ?? 'SKU'}`,
-      timestamp: tx.created_at,
-      href: '/inventory',
-    })
-  }
-
-  for (const call of recentCalls ?? []) {
-    activities.push({
-      icon: <Phone className="w-4 h-4 text-green-500" />,
-      description: `${call.call_type} call logged`,
-      timestamp: call.created_at,
-      href: '/opportunities',
-    })
-  }
-
-  for (const prop of recentProposals ?? []) {
-    activities.push({
-      icon: <FileText className="w-4 h-4 text-slate-500" />,
-      description: `Quote created via ${prop.sent_via}`,
-      timestamp: prop.created_at,
-      href: '/opportunities',
-    })
-  }
-
-  for (const batch of recentSamples ?? []) {
-    activities.push({
-      icon: <Gift className="w-4 h-4 text-purple-500" />,
-      description: `Samples shipped from ${batch.ship_from}`,
-      timestamp: batch.created_at,
-      href: '/opportunities',
-    })
-  }
-
-  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  // Assemble US orders with items
+  const usOrders = (usOrdersRaw ?? []).map((order) => ({
+    ...order,
+    items: (usOrderItemsRaw ?? [])
+      .filter((i) => i.order_id === order.order_id)
+      .map((i) => ({ sku_name: i.sku_name, quantity: i.quantity })),
+  }))
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -316,14 +224,24 @@ export default async function DashboardPage() {
         <p className="text-xs text-slate-500 mt-0.5">Overview of your operations</p>
       </div>
       <div className="flex-1 overflow-auto p-6 space-y-6">
-      <DashboardMetrics cards={metricCards} />
-      <DashboardNeedsAttention items={attentionItems.slice(0, 10)} />
-      <DashboardPipeline
-        stageCounts={stageCounts}
-        wonThisMonth={wonThisMonth ?? 0}
-        lostThisMonth={lostThisMonth ?? 0}
+      <DashboardFocusProducts
+        allProducts={(allProducts ?? []).map((p) => ({
+          product_id: p.product_id,
+          customer_facing_product_name: p.customer_facing_product_name,
+          selling_price_usd: p.selling_price_usd,
+          gross_profit_margin: p.gross_profit_margin,
+          jp_stock: productStockMap[p.product_id]?.jp ?? 0,
+          us_stock: productStockMap[p.product_id]?.us ?? 0,
+          in_transit: productStockMap[p.product_id]?.in_transit ?? 0,
+        }))}
+        focusProductCategories={focusProductCategories}
       />
-      <DashboardActivity activities={activities.slice(0, 10)} />
+      <DashboardShipments
+        tasks={tasksWithItems as Parameters<typeof DashboardShipments>[0]['tasks']}
+        usOrders={usOrders}
+        skus={(allSkus ?? []).map((s) => ({ sku_id: s.sku_id, sku_name: s.sku_name, sku_type: s.sku_type }))}
+        profiles={(teamProfiles ?? []).map((p) => ({ id: p.id, name: p.name }))}
+      />
       </div>
     </div>
   )

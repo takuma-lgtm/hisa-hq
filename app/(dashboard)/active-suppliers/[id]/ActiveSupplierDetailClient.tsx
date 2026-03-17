@@ -251,7 +251,7 @@ export default function ActiveSupplierDetailClient({
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.key ? 'border-green-700 text-green-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+              activeTab === tab.key ? 'border-slate-800 text-slate-800' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             {tab.label}
@@ -335,7 +335,7 @@ export default function ActiveSupplierDetailClient({
               <div className="flex justify-end">
                 <Dialog open={orderModalOpen} onOpenChange={setOrderModalOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-green-700 hover:bg-green-800 text-white text-sm gap-1.5">
+                    <Button className="bg-slate-800 hover:bg-slate-900 text-white text-sm gap-1.5">
                       <Plus className="w-4 h-4" />New Order
                     </Button>
                   </DialogTrigger>
@@ -395,7 +395,7 @@ export default function ActiveSupplierDetailClient({
                               )}
                             </div>
                           ))}
-                          <button onClick={addOrderItem} className="text-xs text-green-700 hover:text-green-800">+ 明細を追加</button>
+                          <button onClick={addOrderItem} className="text-xs text-slate-700 hover:text-slate-800">+ 明細を追加</button>
                         </div>
                       </div>
 
@@ -416,7 +416,7 @@ export default function ActiveSupplierDetailClient({
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setOrderModalOpen(false)}>キャンセル</Button>
                         <Button onClick={handleCreateOrder} disabled={savingOrder || !orderItems.some((i) => i.quantity_kg && i.price_per_kg_jpy)}
-                          className="bg-green-700 hover:bg-green-800 text-white">
+                          className="bg-slate-800 hover:bg-slate-900 text-white">
                           {savingOrder ? '保存中...' : '発注を作成'}
                         </Button>
                       </div>
@@ -514,7 +514,7 @@ export default function ActiveSupplierDetailClient({
                     className="flex-1 text-sm border border-slate-200 rounded px-3 py-1.5 resize-none" rows={3}
                     placeholder="コミュニケーション内容..." />
                   <button onClick={handleSendComm} disabled={sending || !messageBody.trim()}
-                    className="self-end p-2 bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-50">
+                    className="self-end p-2 bg-slate-800 text-white rounded hover:bg-slate-900 disabled:opacity-50">
                     <Send className="w-4 h-4" />
                   </button>
                 </div>

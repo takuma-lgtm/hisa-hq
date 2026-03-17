@@ -3,7 +3,7 @@
 /* Design tokens — HISA Matcha CRM */
 :root {
   --card: #FFFFFF;
-  --ring: #2D5A3D;
+  --ring: #1e293b;
   --input: #F9F7F4;
   --muted: #F9F7F4;
   --accent: #F9F7F4;
@@ -15,7 +15,7 @@
   --chart-4: #1A3D2B;
   --chart-5: #0D1F0E;
   --popover: #FFFFFF;
-  --primary: #2D5A3D;
+  --primary: #1e293b;
   --sidebar: #0D1F0E;
   --font-mono: monospace;
   --font-sans: var(--font-sans, Inter, sans-serif);
@@ -60,7 +60,7 @@
   --chart-4: #1A3D2B;
   --chart-5: #0D1F0E;
   --popover: #242424;
-  --primary: #2D5A3D;
+  --primary: #1e293b;
   --sidebar: #0D1F0E;
   --secondary: #242424;
   --background: #121212;

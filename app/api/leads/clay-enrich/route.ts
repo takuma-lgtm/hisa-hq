@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin' && profile?.role !== 'lead_gen') {
+  if (!profile) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 

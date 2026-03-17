@@ -135,7 +135,7 @@ export default function BuyerMessageAnalyzer({ lead, canEdit, onDraftReady }: Pr
           <button
             onClick={handleAnalyze}
             disabled={!buyerMessage.trim()}
-            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Analyze Message
@@ -298,7 +298,7 @@ export default function BuyerMessageAnalyzer({ lead, canEdit, onDraftReady }: Pr
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={handleUseDraft}
-              className="text-xs font-medium px-3 py-1.5 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors"
+              className="text-xs font-medium px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors"
             >
               Use as Draft
             </button>

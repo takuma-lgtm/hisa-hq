@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -34,8 +35,8 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin' && profile?.role !== 'closer') {
-    return NextResponse.json({ error: 'Admin or closer access required' }, { status: 403 })
+  if (!isAdmin(profile?.role)) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
   const body = await request.json()

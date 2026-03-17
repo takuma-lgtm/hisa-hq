@@ -201,9 +201,9 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
   }
 
   function statusBadgeFromStatus(status: 'out' | 'low' | 'ok') {
-    if (status === 'out') return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500">Out</span>
-    if (status === 'low') return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-red-50 text-red-600">Low</span>
-    return <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-50 text-green-600">OK</span>
+    if (status === 'out') return <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-500">Out</span>
+    if (status === 'low') return <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-red-50 text-red-600">Low</span>
+    return <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-green-50 text-green-600">OK</span>
   }
 
   function statusBadge(total: number, threshold: number | null) {
@@ -218,7 +218,7 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       Cans: 'bg-purple-50 text-purple-700',
     }
     return (
-      <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${colors[type] || 'bg-slate-50 text-slate-600'}`}>
+      <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${colors[type] || 'bg-slate-50 text-slate-600'}`}>
         {type}
       </span>
     )

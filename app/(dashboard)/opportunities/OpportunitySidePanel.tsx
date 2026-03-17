@@ -410,7 +410,7 @@ export default function OpportunitySidePanel({ opportunity: opp, userRole, canEd
       <div className="px-4 py-2 border-t border-slate-200 shrink-0">
         <Link
           href={`/opportunities/${oppId}`}
-          className="text-xs text-green-700 hover:text-green-800 font-medium"
+          className="text-xs text-slate-700 hover:text-slate-800 font-medium"
         >
           Open Full Detail →
         </Link>
@@ -594,7 +594,7 @@ function SampleBatchForm({
             </div>
           )
         })}
-        <button onClick={addItem} className="text-xs text-green-700 hover:underline">+ Add item</button>
+        <button onClick={addItem} className="text-xs text-slate-700 hover:underline">+ Add item</button>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -620,7 +620,7 @@ function SampleBatchForm({
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+        className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
       >
         {submitting ? 'Shipping…' : 'Ship Samples'}
       </button>
@@ -647,7 +647,7 @@ function BatchSummary({ batch, oppId }: { batch: SampleBatch; oppId: string }) {
       </div>
       <button
         onClick={() => window.open(`/api/opportunities/${oppId}/packing-slip?batch_id=${batch.batch_id}`, '_blank')}
-        className="flex items-center gap-1 text-xs text-green-700 hover:underline"
+        className="flex items-center gap-1 text-xs text-slate-700 hover:underline"
       >
         <Printer className="w-3 h-3" /> Print Packing Slip
       </button>
@@ -792,12 +792,12 @@ function ShippedSection({
 
           {/* FedEx delivered banner */}
           {isFedEx && batch.carrier_status === 'delivered' && batch.delivery_status !== 'delivered' && (
-            <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-green-700 font-medium">FedEx shows this shipment as delivered!</span>
+            <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-slate-700 font-medium">FedEx shows this shipment as delivered!</span>
               <button
                 onClick={onMarkDelivered}
                 disabled={stageUpdating}
-                className="text-xs font-medium text-green-700 hover:underline"
+                className="text-xs font-medium text-slate-700 hover:underline"
               >
                 Confirm
               </button>
@@ -824,7 +824,7 @@ function ShippedSection({
                 placeholder="Tracking number"
                 className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5"
               />
-              <button onClick={saveTracking} disabled={!trackingVal.trim() || savingTracking} className="text-xs text-green-700 hover:underline disabled:opacity-50">
+              <button onClick={saveTracking} disabled={!trackingVal.trim() || savingTracking} className="text-xs text-slate-700 hover:underline disabled:opacity-50">
                 {savingTracking ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -856,7 +856,7 @@ function ShippedSection({
             <div className="w-full space-y-2">
               <div className="flex items-center gap-2">
                 <input value={trackingVal} onChange={(e) => setTrackingVal(e.target.value)} className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5" />
-                <button onClick={saveTracking} disabled={savingTracking} className="text-xs text-green-700 hover:underline disabled:opacity-50">
+                <button onClick={saveTracking} disabled={savingTracking} className="text-xs text-slate-700 hover:underline disabled:opacity-50">
                   {savingTracking ? 'Saving...' : 'Save'}
                 </button>
                 <button onClick={() => setEditTracking(false)} className="text-xs text-slate-400 hover:underline">Cancel</button>
@@ -979,7 +979,7 @@ function PendingDraftsSection({
                 className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 resize-none"
               />
               <div className="flex gap-2">
-                <button onClick={() => handleSaveEdit(draft.draft_id)} className="text-xs text-green-700 hover:underline">Save</button>
+                <button onClick={() => handleSaveEdit(draft.draft_id)} className="text-xs text-slate-700 hover:underline">Save</button>
                 <button onClick={() => setEditingId(null)} className="text-xs text-slate-400 hover:underline">Cancel</button>
               </div>
             </div>
@@ -1002,7 +1002,7 @@ function PendingDraftsSection({
               </button>
             )}
             {hasPhone && (
-              <button onClick={() => handleSendWhatsApp(draft)} className="px-3 py-1 text-xs font-medium rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors">
+              <button onClick={() => handleSendWhatsApp(draft)} className="px-3 py-1 text-xs font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
                 Send via WhatsApp
               </button>
             )}
@@ -1286,7 +1286,7 @@ function QuoteBuilder({
             </div>
           )
         })}
-        <button onClick={addLine} className="text-xs text-green-700 hover:underline">+ Add product</button>
+        <button onClick={addLine} className="text-xs text-slate-700 hover:underline">+ Add product</button>
       </div>
 
       {total > 0 && (
@@ -1318,7 +1318,7 @@ function QuoteBuilder({
       <button
         onClick={handleSave}
         disabled={submitting}
-        className="w-full bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+        className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
       >
         {submitting ? 'Saving…' : 'Save Quote'}
       </button>
@@ -1407,7 +1407,7 @@ function QuoteSummary({
       </div>
       <button
         onClick={handleCopy}
-        className="flex items-center gap-1 text-xs text-green-700 hover:underline"
+        className="flex items-center gap-1 text-xs text-slate-700 hover:underline"
       >
         {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Message</>}
       </button>
@@ -1492,7 +1492,7 @@ function QuoteSentSection({
         <div className="bg-slate-50 rounded p-2 text-xs text-slate-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
           {message}
         </div>
-        <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-green-700 hover:underline">
+        <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-slate-700 hover:underline">
           {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Message</>}
         </button>
       </div>
@@ -1502,7 +1502,7 @@ function QuoteSentSection({
           <button
             onClick={onMarkWon}
             disabled={stageUpdating}
-            className="flex-1 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+            className="flex-1 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
           >
             {stageUpdating ? 'Updating…' : 'Mark Won'}
           </button>
@@ -1571,17 +1571,17 @@ function DealWonSection({
   }
 
   return (
-    <div className="border border-green-200 bg-green-50 rounded-lg p-4 text-center space-y-3">
+    <div className="border border-slate-200 bg-slate-50 rounded-lg p-4 text-center space-y-3">
       <div className="text-2xl">🎉</div>
-      <h3 className="text-sm font-semibold text-green-800">Deal Won!</h3>
-      <p className="text-xs text-green-700">{customer.cafe_name}</p>
+      <h3 className="text-sm font-semibold text-slate-800">Deal Won!</h3>
+      <p className="text-xs text-slate-700">{customer.cafe_name}</p>
       {customer.qualified_products && <p className="text-xs text-green-600">Products: {customer.qualified_products}</p>}
       {customer.qualified_volume_kg != null && <p className="text-xs text-green-600">Volume: {customer.qualified_volume_kg} kg/mo</p>}
 
       {canEdit && !showConfirm && (
         <button
           onClick={() => setShowConfirm(true)}
-          className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors"
+          className="w-full mt-2 px-3 py-2 text-xs font-medium rounded-md bg-slate-800 text-white hover:bg-slate-900 transition-colors"
         >
           Move to Recurring Customer
         </button>
@@ -1614,7 +1614,7 @@ function DealWonSection({
             <button
               onClick={handleConvert}
               disabled={converting}
-              className="flex-1 px-2 py-1.5 text-xs font-medium rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              className="flex-1 px-2 py-1.5 text-xs font-medium rounded bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50"
             >
               {converting ? 'Converting...' : 'Confirm'}
             </button>
@@ -1783,7 +1783,7 @@ function RecentActivity({
               </div>
             </div>
           ))}
-          <Link href={`/opportunities/${oppId}`} className="text-xs text-green-700 hover:underline block">
+          <Link href={`/opportunities/${oppId}`} className="text-xs text-slate-700 hover:underline block">
             View all →
           </Link>
         </div>
