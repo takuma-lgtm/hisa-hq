@@ -28,7 +28,7 @@ const OPP_STAGE_LABELS: Record<string, string> = {
 
 const LEAD_STAGE_LABELS: Record<string, string> = {
   new_lead: 'New', contacted: 'Contacted', replied: 'Replied',
-  qualified: 'Qualified', handed_off: 'Handed Off', disqualified: 'Disqualified',
+  qualified: 'Qualified', handed_off: 'Promoted', disqualified: 'Disqualified',
 }
 
 interface DailyBriefData {

@@ -21,14 +21,12 @@ interface ActiveSuppliersGridProps {
 }
 
 export default function ActiveSuppliersGrid({ suppliers, orders, linkedProducts, lastContact }: ActiveSuppliersGridProps) {
-  // Group orders by supplier
   const ordersBySupplier: Record<string, OrderWithItems[]> = {}
   for (const o of orders) {
     if (!ordersBySupplier[o.supplier_id]) ordersBySupplier[o.supplier_id] = []
     ordersBySupplier[o.supplier_id].push(o)
   }
 
-  // Group products by supplier
   const productsBySupplier: Record<string, LinkedProduct[]> = {}
   for (const lp of linkedProducts) {
     if (!productsBySupplier[lp.supplier_id]) productsBySupplier[lp.supplier_id] = []
@@ -52,80 +50,100 @@ export default function ActiveSuppliersGrid({ suppliers, orders, linkedProducts,
   const renderStars = (rating: number | null) => {
     if (!rating) return <span className="text-slate-300">—</span>
     return (
-      <span className="text-amber-500">
-        {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
+      <span className="tracking-tight">
+        <span className="text-amber-400">{'★'.repeat(rating)}</span>
+        <span className="text-slate-200">{'★'.repeat(5 - rating)}</span>
       </span>
     )
   }
 
+  if (suppliers.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <p className="text-sm text-slate-400">No active suppliers yet. Convert suppliers from the pipeline when deals are established.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {suppliers.map((supplier) => {
-        const supplierOrders = ordersBySupplier[supplier.supplier_id] ?? []
-        const supplierProductsList = productsBySupplier[supplier.supplier_id] ?? []
-        const totalSpend = supplierOrders.reduce((sum, o) => sum + (o.total_amount_jpy ?? 0), 0)
-        const lastOrder = supplierOrders[0]
-        const avgQuality = supplierOrders.length > 0
-          ? supplierOrders.filter((o) => o.quality_rating).reduce((sum, o) => sum + (o.quality_rating ?? 0), 0) /
-            (supplierOrders.filter((o) => o.quality_rating).length || 1)
-          : null
+    <div className="overflow-x-auto">
+      {/* Sticky header */}
+      <div className="flex items-center px-6 py-2 border-b border-slate-200 bg-white sticky top-0 z-10 text-xs text-slate-400 font-medium min-w-[760px]">
+        <div className="flex-1 min-w-0">Supplier</div>
+        <div className="w-28 shrink-0">Type</div>
+        <div className="w-20 shrink-0">Orders</div>
+        <div className="w-32 shrink-0">Total Spend</div>
+        <div className="w-28 shrink-0">Quality</div>
+        <div className="w-36 shrink-0">Last Contact</div>
+      </div>
 
-        const qualityRating = avgQuality ? Math.round(avgQuality) : supplier.quality_rating
-        const lastContactDate = lastContact[supplier.supplier_id] ?? supplier.last_contacted_at
+      {/* Rows */}
+      <div className="min-w-[760px]">
+        {suppliers.map((supplier) => {
+          const supplierOrders = ordersBySupplier[supplier.supplier_id] ?? []
+          const totalSpend = supplierOrders.reduce((sum, o) => sum + (o.total_amount_jpy ?? 0), 0)
+          const ratedOrders = supplierOrders.filter((o) => o.quality_rating)
+          const avgQuality = ratedOrders.length > 0
+            ? ratedOrders.reduce((sum, o) => sum + (o.quality_rating ?? 0), 0) / ratedOrders.length
+            : null
+          const qualityRating = avgQuality ? Math.round(avgQuality) : supplier.quality_rating
+          const lastContactDate = lastContact[supplier.supplier_id] ?? supplier.last_contacted_at
 
-        return (
-          <Link
-            key={supplier.supplier_id}
-            href={`/active-suppliers/${supplier.supplier_id}`}
-            className="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all block cursor-pointer"
-          >
-            {/* Header */}
-            <div className="mb-2">
-              <h3 className="text-sm font-semibold text-slate-900 truncate">{supplier.supplier_name}</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                {supplier.prefecture && (
-                  <span className="text-[11px] text-slate-500">{supplier.prefecture}</span>
-                )}
-                {supplier.business_type && (
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[supplier.business_type]}`}>
+          const initials = supplier.supplier_name.charAt(0).toUpperCase()
+
+          return (
+            <Link
+              key={supplier.supplier_id}
+              href={`/active-suppliers/${supplier.supplier_id}`}
+              className="flex items-center px-6 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer last:border-b-0"
+            >
+              {/* Avatar + name */}
+              <div className="flex-1 min-w-0 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <span className="text-slate-500 text-sm font-semibold">{initials}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{supplier.supplier_name}</p>
+                  {supplier.prefecture && (
+                    <p className="text-xs text-slate-400 truncate">{supplier.prefecture}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Business type */}
+              <div className="w-28 shrink-0">
+                {supplier.business_type ? (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${SUPPLIER_BUSINESS_TYPE_COLORS[supplier.business_type]}`}>
                     {SUPPLIER_BUSINESS_TYPE_LABELS[supplier.business_type]}
                   </span>
+                ) : (
+                  <span className="text-xs text-slate-300">—</span>
                 )}
               </div>
-            </div>
 
-            {/* Products */}
-            {supplierProductsList.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {supplierProductsList.slice(0, 3).map((lp) => (
-                  <span key={lp.id} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                    {lp.product?.customer_facing_product_name ?? lp.product_name_jpn ?? '—'}
-                  </span>
-                ))}
-                {supplierProductsList.length > 3 && (
-                  <span className="text-[10px] text-slate-400">+{supplierProductsList.length - 3}</span>
-                )}
+              {/* Order count */}
+              <div className="w-20 shrink-0 text-sm text-slate-600">
+                {supplierOrders.length > 0 ? `${supplierOrders.length}回` : <span className="text-slate-300">—</span>}
               </div>
-            )}
 
-            {/* Compact stats */}
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 flex-wrap">
-              <span>{supplierOrders.length > 0 ? `${supplierOrders.length}回発注` : '発注なし'}</span>
-              <span className="text-slate-300">·</span>
-              <span>{totalSpend > 0 ? formatCurrency(totalSpend) : '¥0'}</span>
-              {qualityRating && (
-                <>
-                  <span className="text-slate-300">·</span>
-                  <span className="text-amber-500">{'★'.repeat(qualityRating)}{'☆'.repeat(5 - qualityRating)}</span>
-                </>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              最終連絡 {relativeDate(lastContactDate)}
-            </p>
-          </Link>
-        )
-      })}
+              {/* Total spend */}
+              <div className="w-32 shrink-0 text-sm text-slate-600">
+                {totalSpend > 0 ? formatCurrency(totalSpend) : <span className="text-slate-300">—</span>}
+              </div>
+
+              {/* Quality */}
+              <div className="w-28 shrink-0">
+                {renderStars(qualityRating ?? null)}
+              </div>
+
+              {/* Last contact */}
+              <div className="w-36 shrink-0 text-xs text-slate-400">
+                {relativeDate(lastContactDate ?? null)}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
     </div>
   )
 }

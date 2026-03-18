@@ -17,6 +17,7 @@ import HandoffSummaryCard from '@/components/opportunity/HandoffSummaryCard'
 import TimelineView from '@/components/opportunity/TimelineView'
 import ActionPanel from '@/components/opportunity/ActionPanel'
 import { STAGE_LABEL } from '@/lib/constants'
+import OpportunityProgress from '@/components/ui/opportunity-progress'
 
 interface Props {
   opportunity: OpportunityFull
@@ -85,6 +86,9 @@ export default function OpportunityDetailClient({
           </p>
         </div>
       </div>
+
+      {/* Phase progress bar */}
+      <OpportunityProgress stage={opportunity.stage} />
 
       {/* 3-column layout */}
       <div className="flex flex-1 overflow-hidden">

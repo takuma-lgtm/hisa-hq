@@ -1,10 +1,8 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import type { Customer } from '@/types/database'
 import LeadsTable from './LeadsTable'
-import DiscoverPanel from './DiscoverPanel'
 
 interface Props {
   leads: Customer[]
@@ -14,13 +12,6 @@ interface Props {
 }
 
 function Content({ leads, profiles, outreachStats, canEdit }: Props) {
-  const searchParams = useSearchParams()
-  const tab = searchParams.get('tab') || 'leads'
-
-  if (tab === 'discover') {
-    return <DiscoverPanel />
-  }
-
   if (leads.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">

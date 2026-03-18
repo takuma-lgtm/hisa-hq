@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import ProductsTable from './ProductsTable'
+import ProductsCarouselView from './ProductsCarouselView'
 import type { MarginThresholds } from '@/lib/margin-health'
 import { DEFAULT_MARGIN_THRESHOLDS } from '@/lib/margin-health'
 
@@ -42,7 +42,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <ProductsTable
+      <ProductsCarouselView
         products={products ?? []}
         isAdmin={isAdmin}
         marginThresholds={thresholds}

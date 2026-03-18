@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
-        {children}
+        <ThemeProvider forcedTheme="light" attribute="class">
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

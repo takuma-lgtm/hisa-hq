@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import type { Customer, LeadStage, Profile } from '@/types/database'
 import LeadSidePanel from './LeadSidePanel'
+import { ResizableTable, type Employee } from '@/components/ui/resizable-table'
 
 interface OutreachSummary {
   lastOutreachDate: string | null
@@ -23,16 +24,16 @@ type SortKey = 'cafe_name'
 type SortDir = 'asc' | 'desc'
 
 const SOURCE_STYLES: Record<string, { label: string; classes: string }> = {
-  google_maps:        { label: 'Google Maps',  classes: 'bg-blue-50 text-blue-700' },
-  gemini:             { label: 'Gemini',       classes: 'bg-purple-50 text-purple-700' },
-  sheets_import:      { label: 'Sheets',       classes: 'bg-green-50 text-green-700' },
-  apify_google_maps:  { label: 'Google Maps',  classes: 'bg-blue-50 text-blue-700' },
-  manual:             { label: 'Manual',       classes: 'bg-slate-100 text-slate-600' },
+  google_maps:        { label: 'Google Maps',  classes: 'bg-slate-100 text-slate-500' },
+  gemini:             { label: 'Gemini',       classes: 'bg-slate-100 text-slate-500' },
+  sheets_import:      { label: 'Sheets',       classes: 'bg-slate-100 text-slate-500' },
+  apify_google_maps:  { label: 'Google Maps',  classes: 'bg-slate-100 text-slate-500' },
+  manual:             { label: 'Manual',       classes: 'bg-slate-100 text-slate-500' },
 }
 
 function getSourceStyle(sourceType: string | null) {
-  if (!sourceType) return { label: 'Sheets', classes: 'bg-green-50 text-green-700' }
-  return SOURCE_STYLES[sourceType] ?? { label: sourceType, classes: 'bg-slate-100 text-slate-600' }
+  if (!sourceType) return { label: 'Sheets', classes: 'bg-slate-100 text-slate-500' }
+  return SOURCE_STYLES[sourceType] ?? { label: sourceType, classes: 'bg-slate-100 text-slate-500' }
 }
 
 const COUNTRY_ABBR: Record<string, string> = {
@@ -60,24 +61,28 @@ function formatLocation(city?: string | null, state?: string | null, country?: s
   return parts.join(', ') || '—'
 }
 
-const STAGE_BADGE: Record<string, { label: string; classes: string }> = {
-  new_lead:     { label: 'New',          classes: 'bg-slate-100 text-slate-600' },
-  contacted:    { label: 'Contacted',    classes: 'bg-blue-50 text-blue-700' },
-  replied:      { label: 'Replied',      classes: 'bg-green-50 text-green-700' },
-  qualified:    { label: 'Qualified',    classes: 'bg-amber-50 text-amber-700' },
-  handed_off:   { label: 'Handed Off',   classes: 'bg-purple-50 text-purple-700' },
-  disqualified: { label: 'Disqualified', classes: 'bg-red-50 text-red-600' },
+const STAGE_BADGE: Record<string, { label: string; dot: string; classes: string }> = {
+  new_lead:     { label: 'New',          dot: 'bg-slate-400',   classes: 'bg-slate-100 text-slate-600 border border-slate-300' },
+  contacted:    { label: 'Contacted',    dot: 'bg-blue-500',    classes: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  replied:      { label: 'Replied',      dot: 'bg-green-500',   classes: 'bg-green-50 text-green-700 border border-green-200' },
+  qualified:    { label: 'Qualified',    dot: 'bg-amber-500',   classes: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  handed_off:   { label: 'Promoted',     dot: 'bg-purple-500',  classes: 'bg-purple-50 text-purple-700 border border-purple-200' },
+  disqualified: { label: 'Disqualified', dot: 'bg-red-400',     classes: 'bg-red-50 text-red-600 border border-red-200' },
 }
 
-// Stage pills for filtering
-const STAGE_PILLS: { value: string; label: string }[] = [
+// Quick filters (not funnel stages)
+const QUICK_FILTERS = [
   { value: '', label: 'All' },
-  { value: 'new_lead', label: 'New' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'replied', label: 'Replied' },
-  { value: 'qualified', label: 'Qualified' },
-  { value: 'handed_off', label: 'Handed Off' },
+  { value: 'disqualified', label: 'Disqualified' },
 ]
+
+// True funnel stages in order
+const FUNNEL_STAGES = [
+  { value: 'new_lead',   label: 'New' },
+  { value: 'contacted',  label: 'Contacted' },
+  { value: 'replied',    label: 'Replied' },
+]
+
 
 function getDaysBadge(days: number | null) {
   if (days === null) return { label: '—', classes: 'text-slate-300', overdue: false }
@@ -227,93 +232,139 @@ export default function LeadsTable({ leads, profiles, outreachStats: initialOutr
             <p className="ml-auto text-xs text-slate-400 shrink-0">{filtered.length} leads</p>
           </div>
 
-          {/* Stage pills */}
-          <div className="flex gap-1">
-            {STAGE_PILLS.map(({ value, label }) => {
-              const count = stageCounts[value] ?? 0
-              if (value && count === 0) return null
-              const isActive = activeStage === value
+          {/* Stage filter bar — single unified row */}
+          <div className="flex items-center gap-0">
+            {/* All */}
+            <button
+              onClick={() => setActiveStage('')}
+              className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
+                activeStage === ''
+                  ? 'border-green-600 text-green-700 font-semibold'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              All <span className="text-xs ml-0.5">{leads.length}</span>
+            </button>
+
+            {/* Separator */}
+            <span className="text-slate-200 px-2 text-sm select-none">|</span>
+
+            {/* Funnel stages with arrows — stepper/progress style */}
+            {(() => {
+              const activeFunnelIndex = FUNNEL_STAGES.findIndex(s => s.value === activeStage)
+              return FUNNEL_STAGES.map(({ value, label }, i) => {
+                const count = stageCounts[value] ?? 0
+                const isActive = activeStage === value
+                const isPast = activeFunnelIndex >= 0 && i < activeFunnelIndex
+                const isFuture = activeFunnelIndex >= 0 && i > activeFunnelIndex
+                const isLast = i === FUNNEL_STAGES.length - 1
+
+                const btnClass = isActive
+                  ? 'border-green-600 text-green-700 font-bold'
+                  : isPast
+                  ? 'border-transparent text-green-500 hover:text-green-700'
+                  : isFuture
+                  ? 'border-transparent text-slate-400 hover:text-slate-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+
+                const countClass = isActive
+                  ? 'text-green-600'
+                  : isPast
+                  ? 'text-green-400'
+                  : isFuture
+                  ? 'text-slate-300'
+                  : 'text-slate-400'
+
+                const arrowClass = isPast || isActive
+                  ? 'text-green-300'
+                  : 'text-slate-300'
+
+                return (
+                  <div key={value} className="flex items-center">
+                    <button
+                      onClick={() => setActiveStage(value)}
+                      className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${btnClass}`}
+                    >
+                      {label} <span className={`text-xs ml-0.5 ${countClass}`}>{count}</span>
+                    </button>
+                    {!isLast && (
+                      <span className={`text-xs select-none px-0.5 ${arrowClass}`}>→</span>
+                    )}
+                  </div>
+                )
+              })
+            })()}
+
+            {/* Separator */}
+            <span className="text-slate-200 px-2 text-sm select-none">|</span>
+
+            {/* Disqualified */}
+            {(() => {
+              const count = stageCounts['disqualified'] ?? 0
+              const isActive = activeStage === 'disqualified'
               return (
                 <button
-                  key={value}
-                  onClick={() => setActiveStage(value)}
-                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  onClick={() => setActiveStage('disqualified')}
+                  className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'border-red-500 text-red-600 font-semibold'
+                      : count > 0
+                      ? 'border-transparent text-red-400 hover:text-red-500 hover:border-red-200'
+                      : 'border-transparent text-slate-300 hover:text-slate-400'
                   }`}
                 >
-                  {label} ({value === '' ? leads.length : count})
+                  Disqualified <span className="text-xs ml-0.5">{count}</span>
                 </button>
               )
-            })}
+            })()}
           </div>
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-4 py-3">
           {filtered.length === 0 ? (
             <p className="text-center py-20 text-slate-400 text-sm">No leads match your filters.</p>
           ) : (
-            <table className="w-full text-sm border-collapse zebra-table">
-              <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
-                <tr>
-                  <SortTh col="cafe_name" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} first>Cafe Name</SortTh>
-                  <Th>Location</Th>
-                  <Th>Last Activity</Th>
-                  <Th>Status</Th>
-                  <Th>Source</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((lead) => {
-                  const isSelected = lead.customer_id === selectedLeadId
-                  const stats = outreachStats[lead.customer_id]
-                  const activity = getDaysBadge(stats?.daysSinceContact ?? null)
-                  const effectiveStage = leadStages[lead.customer_id] ?? lead.lead_stage ?? 'new_lead'
-                  const stageBadge = STAGE_BADGE[effectiveStage] ?? STAGE_BADGE.new_lead
-                  return (
-                    <tr
-                      key={lead.customer_id}
-                      onClick={() => handleRowClick(lead.customer_id)}
-                      className={`border-b border-slate-100 cursor-pointer ${
-                        isSelected ? 'bg-green-50' : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <td className="pl-10 pr-3 py-2.5 text-slate-900 font-medium max-w-[200px] truncate">
-                        {lead.cafe_name}
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-600 max-w-[160px] truncate">
-                        {formatLocation(lead.city, lead.state, lead.country)}
-                      </td>
-                      <td className="px-2 py-2.5 text-xs whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
-                          {activity.overdue && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="Needs follow-up" />
-                          )}
-                          <span className={activity.classes}>{activity.label}</span>
-                        </span>
-                      </td>
-                      <td className="px-2 py-2.5 text-xs whitespace-nowrap">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${stageBadge.classes}`}>
-                          {stageBadge.label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {(() => {
-                          const s = getSourceStyle(lead.source_type)
-                          return (
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${s.classes}`}>
-                              {s.label}
-                            </span>
-                          )
-                        })()}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <ResizableTable
+              title="Cafe"
+              employees={filtered.map((lead): Employee => {
+                const stats = outreachStats[lead.customer_id]
+                const effectiveStage = leadStages[lead.customer_id] ?? lead.lead_stage ?? 'new_lead'
+                const stageBadge = STAGE_BADGE[effectiveStage] ?? STAGE_BADGE.new_lead
+                const stageToStatus = (s: string): 'active' | 'inactive' | 'on-leave' => {
+                  if (s === 'disqualified') return 'inactive'
+                  if (s === 'handed_off') return 'on-leave'
+                  return 'active'
+                }
+                return {
+                  id: lead.customer_id,
+                  name: lead.cafe_name ?? '—',
+                  email: (() => {
+                    const url = lead.website_url ?? lead.instagram_url
+                    if (!url) return '—'
+                    return url.startsWith('http') ? url : `https://${url}`
+                  })(),
+                  department: formatLocation(lead.city, lead.state, lead.country),
+                  position: stageBadge.label,
+                  salary: stats?.outreachCount ?? 0,
+                  hireDate: lead.date_generated ?? lead.created_at ?? new Date().toISOString(),
+                  status: stageToStatus(effectiveStage),
+                }
+              })}
+              columnLabels={{
+                email: 'Website',
+                department: 'Location',
+                position: 'Stage',
+                salary: 'Messages',
+                hireDate: 'Created',
+              }}
+              formatSalary={(n) => n === 0 ? '—' : `${n}×`}
+              onEmployeeSelect={handleRowClick}
+              enableAnimations={true}
+              showCheckboxes={false}
+              showToolbar={false}
+              showStatus={false}
+            />
           )}
         </div>
       </div>

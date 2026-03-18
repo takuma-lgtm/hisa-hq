@@ -1,27 +1,51 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
+const schema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
+})
+
+type FormValues = z.infer<typeof schema>
+
+const container = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+}
+
+const item = {
+  hidden: { y: 16, opacity: 0 },
+  visible: { y: 0, opacity: 1 },
+}
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
+  async function onSubmit(data: FormValues) {
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setError('root', { message: error.message })
       return
     }
 
@@ -30,62 +54,92 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-sm">
-        {/* Logo / Brand */}
-        <div className="mb-8 text-center">
-          <img src="/hisa-logo.png" alt="HISA" className="h-16 w-auto mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-slate-900">Hisa HQ</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
-        </div>
+    <div className="relative min-h-screen w-full">
+      {/* Full-screen background image */}
+      <img
+        src="/matcha-field.jpg"
+        alt="Matcha field"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40" />
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              placeholder="you@hisamatcha.com"
-            />
-          </div>
+      {/* Centered login card */}
+      <div className="relative flex min-h-screen items-center justify-center px-4">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-sm rounded-2xl bg-white/60 backdrop-blur-md p-8 shadow-2xl flex flex-col gap-6"
+        >
+          {/* Logo */}
+          <motion.div variants={item}>
+            <img src="/hisa-logo.png" alt="HISA" className="h-10 w-auto" />
+          </motion.div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {error}
+          {/* Heading */}
+          <motion.div variants={item}>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              Welcome back
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Sign in to your account
             </p>
-          )}
+          </motion.div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <motion.div variants={item} className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@hisamatcha.com"
+                autoComplete="email"
+                disabled={isSubmitting}
+                {...register('email')}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-600">{errors.email.message}</p>
+              )}
+            </motion.div>
+
+            <motion.div variants={item} className="flex flex-col gap-1.5">
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                autoComplete="current-password"
+                disabled={isSubmitting}
+                {...register('password')}
+              />
+              {errors.password && (
+                <p className="text-xs text-red-600">{errors.password.message}</p>
+              )}
+            </motion.div>
+
+            {errors.root && (
+              <motion.p
+                variants={item}
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600"
+              >
+                {errors.root.message}
+              </motion.p>
+            )}
+
+            <motion.div variants={item}>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign in
+              </Button>
+            </motion.div>
+          </form>
+        </motion.div>
       </div>
     </div>
   )

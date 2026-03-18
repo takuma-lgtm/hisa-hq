@@ -10,6 +10,7 @@ import {
   OPPORTUNITY_STAGE_COLORS,
 } from '@/lib/constants'
 import OpportunitySidePanel from './OpportunitySidePanel'
+import { ResizableTable, type Employee } from '@/components/ui/resizable-table'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,7 +107,6 @@ function truncate(s: string | null, max: number): string {
 export default function OpportunitiesTable({ opportunities, profiles, products, userRole, invoiceStatuses = {} }: Props) {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
-  const [showClosed, setShowClosed] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -133,10 +133,12 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
 
   const canEdit = userRole === 'owner' || userRole === 'admin'
 
-  // Stage counts for pills
+  // Stage counts for filter bar
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const stage of OPPORTUNITY_TABLE_STAGES) counts[stage] = 0
+    counts['disqualified'] = 0
+    counts['lost'] = 0
     for (const o of opportunities) {
       const s = localStages[o.opportunity_id] ?? o.stage
       if (counts[s] !== undefined) counts[s]++
@@ -154,7 +156,8 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
     const rows = opportunities.filter((o) => {
       const effectiveStage = localStages[o.opportunity_id] ?? o.stage
       const isTerminal = effectiveStage === 'disqualified' || effectiveStage === 'lost'
-      if (isTerminal && !showClosed) return false
+      // Hide terminal stages unless explicitly filtered to them
+      if (isTerminal && stageFilter !== effectiveStage) return false
       if (stageFilter && effectiveStage !== stageFilter) return false
       if (q) {
         const hay = [o.customer.cafe_name, o.customer.city, o.customer.country, o.customer.contact_person]
@@ -180,7 +183,7 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
       }
       return 0
     })
-  }, [opportunities, localStages, search, stageFilter, showClosed, sortKey, sortDir])
+  }, [opportunities, localStages, search, stageFilter, sortKey, sortDir])
 
   function handleRowClick(id: string) {
     setSelectedId((prev) => (prev === id ? null : id))
@@ -226,148 +229,181 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
       {/* Table section */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Filter bar */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-200 shrink-0 flex-wrap">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="search"
-              placeholder="Search opportunities…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+        <div className="px-6 py-3 border-b border-slate-200 shrink-0 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="search"
+                placeholder="Search opportunities…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <p className="ml-auto text-xs text-slate-400 shrink-0">
+              {filtered.length} opportunit{filtered.length !== 1 ? 'ies' : 'y'}
+            </p>
           </div>
 
-          {/* Stage pills */}
-          <div className="flex items-center gap-1.5">
-            {OPPORTUNITY_TABLE_STAGES.map((stage) => {
-              const active = stageFilter === stage
+          {/* Stage filter bar — sequential arrow format */}
+          <div className="flex items-center gap-0">
+            {/* All */}
+            <button
+              onClick={() => setStageFilter('')}
+              className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
+                stageFilter === ''
+                  ? 'border-green-600 text-green-700 font-semibold'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              All <span className="text-xs ml-0.5">{opportunities.length}</span>
+            </button>
+
+            {/* Separator */}
+            <span className="text-slate-200 px-2 text-sm select-none">|</span>
+
+            {/* Pipeline stages with arrows */}
+            {(() => {
+              const activePipelineIndex = OPPORTUNITY_TABLE_STAGES.indexOf(stageFilter as OpportunityStage)
+              return OPPORTUNITY_TABLE_STAGES.map((stage, i) => {
+                const count = stageCounts[stage] ?? 0
+                const isActive = stageFilter === stage
+                const isPast = activePipelineIndex >= 0 && i < activePipelineIndex
+                const isFuture = activePipelineIndex >= 0 && i > activePipelineIndex
+                const isLast = i === OPPORTUNITY_TABLE_STAGES.length - 1
+
+                const btnClass = isActive
+                  ? 'border-green-600 text-green-700 font-bold'
+                  : isPast
+                  ? 'border-transparent text-green-500 hover:text-green-700'
+                  : isFuture
+                  ? 'border-transparent text-slate-400 hover:text-slate-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+
+                const countClass = isActive
+                  ? 'text-green-600'
+                  : isPast
+                  ? 'text-green-400'
+                  : isFuture
+                  ? 'text-slate-300'
+                  : 'text-slate-400'
+
+                const arrowClass = isPast || isActive ? 'text-green-300' : 'text-slate-300'
+
+                return (
+                  <div key={stage} className="flex items-center">
+                    <button
+                      onClick={() => setStageFilter(isActive ? '' : stage)}
+                      className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${btnClass}`}
+                    >
+                      {OPPORTUNITY_STAGE_LABELS[stage]} <span className={`text-xs ml-0.5 ${countClass}`}>{count}</span>
+                    </button>
+                    {!isLast && (
+                      <span className={`text-xs select-none px-0.5 ${arrowClass}`}>→</span>
+                    )}
+                  </div>
+                )
+              })
+            })()}
+
+            {/* Separator */}
+            <span className="text-slate-200 px-2 text-sm select-none">|</span>
+
+            {/* Disqualified */}
+            {(() => {
+              const count = stageCounts['disqualified'] ?? 0
+              const isActive = stageFilter === 'disqualified'
               return (
                 <button
-                  key={stage}
-                  onClick={() => setStageFilter(active ? '' : stage)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
-                    active
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                  onClick={() => setStageFilter(isActive ? '' : 'disqualified')}
+                  className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-red-500 text-red-600 font-semibold'
+                      : count > 0
+                      ? 'border-transparent text-red-400 hover:text-red-500 hover:border-red-200'
+                      : 'border-transparent text-slate-300 hover:text-slate-400'
                   }`}
                 >
-                  {OPPORTUNITY_STAGE_LABELS[stage]} ({stageCounts[stage] ?? 0})
+                  Disqualified <span className="text-xs ml-0.5">{count}</span>
                 </button>
               )
-            })}
+            })()}
+
+            {/* · Lost */}
+            <span className="text-slate-300 px-1 text-sm select-none">·</span>
+            {(() => {
+              const count = stageCounts['lost'] ?? 0
+              const isActive = stageFilter === 'lost'
+              return (
+                <button
+                  onClick={() => setStageFilter(isActive ? '' : 'lost')}
+                  className={`py-2 px-3 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-slate-500 text-slate-700 font-semibold'
+                      : count > 0
+                      ? 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
+                      : 'border-transparent text-slate-300 hover:text-slate-400'
+                  }`}
+                >
+                  Lost <span className="text-xs ml-0.5">{count}</span>
+                </button>
+              )
+            })()}
           </div>
-
-          {/* Show Closed toggle */}
-          <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={showClosed}
-              onChange={(e) => setShowClosed(e.target.checked)}
-              className="rounded border-slate-300 text-green-600 focus:ring-green-500"
-            />
-            Closed
-          </label>
-
-          <span className="ml-auto text-xs text-slate-400">
-            {filtered.length} opportunit{filtered.length !== 1 ? 'ies' : 'y'}
-          </span>
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm zebra-table">
-            <thead className="sticky top-0 bg-white z-10">
-              <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                <th
-                  className="px-6 py-2.5 cursor-pointer select-none hover:text-slate-700"
-                  onClick={() => handleSort('cafe_name')}
-                >
-                  Café Name <span className="text-[10px]">{sortIndicator('cafe_name')}</span>
-                </th>
-                <th className="px-3 py-2.5">Location</th>
-                <th className="px-3 py-2.5">Stage</th>
-                <th className="px-3 py-2.5">Products</th>
-                <th className="px-3 py-2.5">Volume</th>
-                <th
-                  className="px-3 py-2.5 cursor-pointer select-none hover:text-slate-700"
-                  onClick={() => handleSort('days_in_stage')}
-                >
-                  Days <span className="text-[10px]">{sortIndicator('days_in_stage')}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((o) => {
-                const effectiveStage = localStages[o.opportunity_id] ?? o.stage
-                const days = getDaysInStage(o.updated_at)
-                const daysBadge = getDaysBadge(days)
-                const stageColor = OPPORTUNITY_STAGE_COLORS[effectiveStage] ?? 'bg-slate-100 text-slate-600'
-                const isSelected = selectedId === o.opportunity_id
-
-                return (
-                  <tr
-                    key={o.opportunity_id}
-                    onClick={() => handleRowClick(o.opportunity_id)}
-                    className={`border-b border-slate-100 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-green-50' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <td className="px-6 py-2.5 max-w-[200px]">
-                      <div className="font-medium text-slate-900 truncate">{o.customer.cafe_name ?? '—'}</div>
-                      {o.customer.contact_person && (
-                        <div className="text-xs text-slate-500 truncate">{o.customer.contact_person}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 max-w-[140px] truncate text-slate-600">
-                      {formatLocation(o.customer.city, o.customer.state, o.customer.country)}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className="inline-flex items-center gap-1">
-                        <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${stageColor}`}>
-                          {OPPORTUNITY_STAGE_LABELS[effectiveStage] ?? effectiveStage}
-                        </span>
-                        {invoiceStatuses[o.opportunity_id] === 'paid' && (
-                          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" title="Invoice paid" />
-                        )}
-                        {invoiceStatuses[o.opportunity_id] === 'pending' && (
-                          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Invoice pending" />
-                        )}
-                        {invoiceStatuses[o.opportunity_id] === 'failed' && (
-                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title="Invoice failed" />
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 max-w-[160px] text-slate-600" title={o.customer.qualified_products ?? ''}>
-                      <span className="truncate block">{truncate(o.customer.qualified_products, 30)}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap">
-                      {o.customer.qualified_volume_kg != null ? `${o.customer.qualified_volume_kg} kg/mo` : '—'}
-                    </td>
-                    <td className={`px-3 py-2.5 whitespace-nowrap ${daysBadge.classes}`}>
-                      {daysBadge.label}
-                    </td>
-                  </tr>
-                )
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    No opportunities match your filters.
-                  </td>
-                </tr>
+        <div className="flex-1 overflow-auto px-4 py-3">
+          {filtered.length === 0 ? (
+            <p className="text-center py-20 text-slate-400 text-sm">No opportunities match your filters.</p>
+          ) : (
+            <>
+              <ResizableTable
+                title="Cafe"
+                employees={filtered.map((o): Employee => {
+                  const effectiveStage = localStages[o.opportunity_id] ?? o.stage
+                  const stageToStatus = (s: string): 'active' | 'inactive' | 'on-leave' => {
+                    if (s === 'disqualified' || s === 'lost') return 'inactive'
+                    if (s === 'deal_won' || s === 'payment_received') return 'on-leave'
+                    return 'active'
+                  }
+                  return {
+                    id: o.opportunity_id,
+                    name: o.customer.cafe_name ?? '—',
+                    email: o.customer.email ?? o.customer.instagram_url ?? '—',
+                    department: formatLocation(o.customer.city, o.customer.state, o.customer.country),
+                    position: OPPORTUNITY_STAGE_LABELS[effectiveStage] ?? effectiveStage,
+                    salary: o.customer.qualified_volume_kg ?? 0,
+                    hireDate: o.created_at,
+                    status: stageToStatus(effectiveStage),
+                  }
+                })}
+                columnLabels={{
+                  email: 'Contact',
+                  department: 'Location',
+                  position: 'Stage',
+                  salary: 'Volume',
+                  hireDate: 'Created',
+                }}
+                formatSalary={(n) => n === 0 ? '—' : `${n} kg/mo`}
+                onEmployeeSelect={handleRowClick}
+                showCheckboxes={false}
+                showToolbar={false}
+                showStatus={false}
+                enableAnimations={true}
+              />
+              {filtered.length < 5 && (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="text-sm text-slate-400">
+                    {filtered.length} active {filtered.length === 1 ? 'deal' : 'deals'} in your pipeline.
+                  </p>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Convert more leads from the Leads page to grow your pipeline.
+                  </p>
+                </div>
               )}
-            </tbody>
-          </table>
-          {filtered.length > 0 && filtered.length < 5 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-sm text-slate-400">
-                {filtered.length} active {filtered.length === 1 ? 'deal' : 'deals'} in your pipeline.
-              </p>
-              <p className="text-xs text-slate-300 mt-1">
-                Convert more leads from the Leads page to grow your pipeline.
-              </p>
-            </div>
+            </>
           )}
         </div>
       </div>

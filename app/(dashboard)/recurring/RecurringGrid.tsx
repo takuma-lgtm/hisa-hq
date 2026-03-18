@@ -29,20 +29,18 @@ interface Props {
 
 export default function RecurringGrid({ customers, allOrders }: Props) {
   const [filter, setFilter] = useState<'all' | 'reorder'>('all')
-  // eslint-disable-next-line react-hooks/purity -- stable within a single render
   const now = Date.now()
   const twentyFiveDays = 25 * 24 * 60 * 60 * 1000
 
   const customersWithOrders = customers.map((c) => {
     const orders = allOrders.filter((o) => o.customer_id === c.customer_id)
     const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0)
-    const latestOrder = orders[0] // already sorted DESC
+    const latestOrder = orders[0]
     const lastOrderDate = latestOrder ? new Date(latestOrder.created_at) : null
     const nextExpected = lastOrderDate ? new Date(lastOrderDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null
     const isOverdue = nextExpected ? nextExpected.getTime() < now : false
     const needsReorder = lastOrderDate ? (now - lastOrderDate.getTime()) > twentyFiveDays : false
 
-    // Parse line items from latest order
     let products: string[] = []
     if (latestOrder?.line_items && Array.isArray(latestOrder.line_items)) {
       products = (latestOrder.line_items as Array<{ product_name?: string }>)
@@ -86,91 +84,98 @@ export default function RecurringGrid({ customers, allOrders }: Props) {
             : 'No recurring customers yet. Mark an opportunity as Won to add one.'}
         </div>
       ) : (
-        <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          {filtered.map((c) => (
-            <Link
-              key={c.customer_id}
-              href={`/recurring/${c.customer_id}`}
-              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-green-300 hover:shadow-sm transition-all block"
-            >
-              {/* Avatar + name */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                  <span className="text-green-800 text-sm font-semibold">
-                    {c.cafe_name.charAt(0)}
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900 truncate">{c.cafe_name}</p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {[c.city, c.country].filter(Boolean).join(', ')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Products */}
-              {c.products.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs text-slate-400 mb-1">Products</p>
-                  <div className="flex flex-wrap gap-1">
-                    {c.products.map((p, i) => (
-                      <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <p className="text-slate-400 mb-0.5">Monthly volume</p>
-                  <p className="font-medium text-slate-800">
-                    {c.monthly_matcha_usage_kg != null ? `${c.monthly_matcha_usage_kg} kg` : '—'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-400 mb-0.5">Lifetime revenue</p>
-                  <p className="font-medium text-slate-800">
-                    {c.totalRevenue > 0 ? formatCurrency(c.totalRevenue) : '—'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-400 mb-0.5">Last order</p>
-                  <p className="font-medium text-slate-800">
-                    {c.lastOrderDate ? formatDate(c.lastOrderDate.toISOString()) : '—'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-400 mb-0.5">Next expected</p>
-                  <p className={`font-medium ${c.isOverdue ? 'text-red-600' : 'text-slate-800'}`}>
-                    {c.nextExpected
-                      ? formatDate(c.nextExpected.toISOString())
-                      : '—'}
-                    {c.isOverdue && ' (overdue)'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-slate-400 mb-0.5">Orders</p>
-                  <p className="font-medium text-slate-800">{c.orders.length}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-        {filtered.length > 0 && filtered.length < 3 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm text-slate-400">
-              {filtered.length} recurring {filtered.length === 1 ? 'customer' : 'customers'} so far.
-            </p>
-            <p className="text-xs text-slate-300 mt-1">
-              Win more deals to grow your recurring customer base.
-            </p>
+        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+          {/* Sticky header */}
+          <div className="flex items-center px-6 py-2 border-b border-slate-200 bg-white sticky top-0 z-10 text-xs text-slate-400 font-medium min-w-[860px]">
+            <div className="flex-1 min-w-0">Customer</div>
+            <div className="w-40 shrink-0">Products</div>
+            <div className="w-24 shrink-0">Volume</div>
+            <div className="w-28 shrink-0">Revenue</div>
+            <div className="w-28 shrink-0">Last Order</div>
+            <div className="w-32 shrink-0">Next Expected</div>
           </div>
-        )}
-        </>
+
+          {/* Rows */}
+          <div className="min-w-[860px]">
+            {filtered.map((c) => {
+              const visibleProducts = c.products.slice(0, 2)
+              const overflowProducts = c.products.slice(2)
+
+              return (
+                <Link
+                  key={c.customer_id}
+                  href={`/recurring/${c.customer_id}`}
+                  className="flex items-center px-6 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors duration-150 cursor-pointer last:border-b-0"
+                >
+                  {/* Avatar + name */}
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <span className="text-green-700 text-sm font-semibold">{c.cafe_name.charAt(0)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{c.cafe_name}</p>
+                      <p className="text-xs text-slate-400 truncate">
+                        {[c.city, c.country].filter(Boolean).join(', ') || '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Products */}
+                  <div className="w-40 shrink-0 flex items-center gap-1 flex-wrap">
+                    {visibleProducts.length > 0 ? (
+                      <>
+                        {visibleProducts.map((p, i) => (
+                          <span key={i} className="text-[11px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded truncate max-w-[72px]">
+                            {p}
+                          </span>
+                        ))}
+                        {overflowProducts.length > 0 && (
+                          <span
+                            className="text-[11px] text-slate-400 cursor-default"
+                            title={overflowProducts.join(', ')}
+                          >
+                            +{overflowProducts.length}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </div>
+
+                  {/* Volume */}
+                  <div className="w-24 shrink-0 text-sm text-slate-600">
+                    {c.monthly_matcha_usage_kg != null
+                      ? `${c.monthly_matcha_usage_kg} kg`
+                      : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Revenue */}
+                  <div className="w-28 shrink-0 text-sm text-slate-600">
+                    {c.totalRevenue > 0 ? formatCurrency(c.totalRevenue) : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Last order */}
+                  <div className="w-28 shrink-0 text-xs text-slate-500">
+                    {c.lastOrderDate ? formatDate(c.lastOrderDate.toISOString()) : <span className="text-slate-300">—</span>}
+                  </div>
+
+                  {/* Next expected */}
+                  <div className={`w-32 shrink-0 text-xs ${c.isOverdue ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
+                    {c.nextExpected ? (
+                      <>
+                        {formatDate(c.nextExpected.toISOString())}
+                        {c.isOverdue && <span className="ml-1 text-red-400">(overdue)</span>}
+                      </>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
       )}
     </>
   )

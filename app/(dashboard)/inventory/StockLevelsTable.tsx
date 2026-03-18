@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, SlidersHorizontal, ChevronRight, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronRight, ChevronDown, ArrowRight, ChevronsUpDown, ChevronsDownUp } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { InventoryLevelWithDetails } from '@/types/database'
 import SKUDetailExpansion from './SKUDetailExpansion'
 
@@ -255,11 +256,21 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
           {isActive ? (
             <span className="text-green-600">{sortDir === 'asc' ? '▲' : '▼'}</span>
           ) : (
-            <span className="text-slate-300 opacity-0 group-hover:opacity-100">▲</span>
+            <span className="text-slate-300">⇅</span>
           )}
         </span>
       </th>
     )
+  }
+
+  const allExpanded = groups.length > 0 && groups.every(g => expandedProducts.has(g.product_id))
+
+  function toggleExpandAll() {
+    if (allExpanded) {
+      setExpandedProducts(new Set())
+    } else {
+      setExpandedProducts(new Set(groups.map(g => g.product_id)))
+    }
   }
 
   function toggleProduct(productId: string) {
@@ -278,15 +289,33 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
     setExpandedSkuId(expandedSkuId === skuId ? null : skuId)
   }
 
+  // Totals for footer
+  const totals = useMemo(() => ({
+    jpKg: groups.reduce((s, g) => s + g.jp_weight_kg, 0),
+    usKg: groups.reduce((s, g) => s + g.us_weight_kg, 0),
+    transitKg: groups.reduce((s, g) => s + g.in_transit_weight_kg, 0),
+    totalKg: groups.reduce((s, g) => s + g.total_weight_kg, 0),
+    jpUnits: groups.reduce((s, g) => s + g.jp_stock, 0),
+    usUnits: groups.reduce((s, g) => s + g.us_stock, 0),
+    transitUnits: groups.reduce((s, g) => s + g.in_transit, 0),
+    totalUnits: groups.reduce((s, g) => s + g.total, 0),
+    value: groups.reduce((s, g) => s + g.value_usd, 0),
+  }), [groups])
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Hint */}
-      <div className="flex items-center gap-2 px-6 py-2 bg-slate-50 border-b border-slate-200 shrink-0">
-        <p className="text-xs text-slate-400">Click a product to see SKU variants, then click a variant for transaction history</p>
-      </div>
-
       {/* Filter bar */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-slate-200 shrink-0">
+        <button
+          onClick={toggleExpandAll}
+          title={allExpanded ? 'Collapse all' : 'Expand all'}
+          className="p-1.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+        >
+          {allExpanded
+            ? <ChevronsDownUp className="w-4 h-4" />
+            : <ChevronsUpDown className="w-4 h-4" />
+          }
+        </button>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -299,17 +328,17 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
         </div>
 
         {/* Type filter pills — derived from in-stock types */}
-        {['', ...availableTypes].map(t => (
+        {availableTypes.map(t => (
           <button
             key={t}
-            onClick={() => setTypeFilter(t)}
+            onClick={() => setTypeFilter(t === typeFilter ? '' : t)}
             className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
               typeFilter === t
                 ? 'border-green-500 bg-green-50 text-green-700'
                 : 'border-slate-200 text-slate-500 hover:bg-slate-50'
             }`}
           >
-            {t || 'All'}
+            {t}
           </button>
         ))}
 
@@ -333,19 +362,31 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
           <colgroup>
-            <col style={{ width: '22%' }} />
+            <col style={{ width: '24%' }} />
             <col style={{ width: '13%' }} />
             <col style={{ width: '13%' }} />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '15%' }} />
+            <col style={{ width: '13%' }} />
             <col style={{ width: '17%' }} />
+            <col style={{ width: '20%' }} />
           </colgroup>
           <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
             <tr>
               {renderSortTh("Product", "product_id")}
               {renderSortTh("JP", "jp_stock", "text-center")}
               {renderSortTh("US", "us_stock", "text-center")}
-              {renderSortTh("In Transit (JP→US)", "in_transit", "text-center")}
+              <th
+                className={`px-4 py-2 text-xs font-medium cursor-pointer hover:bg-slate-100 select-none text-center ${sortKey === 'in_transit' ? 'text-green-700 bg-green-50/50' : 'text-slate-500'}`}
+                onClick={() => handleSort('in_transit')}
+              >
+                <span className="inline-flex items-center justify-center gap-1 w-full">
+                  Transit <ArrowRight className="w-3 h-3 text-slate-400" />
+                  {sortKey === 'in_transit' ? (
+                    <span className="text-green-600">{sortDir === 'asc' ? '▲' : '▼'}</span>
+                  ) : (
+                    <span className="text-slate-300">⇅</span>
+                  )}
+                </span>
+              </th>
               {renderSortTh("Total", "total", "text-center")}
               {renderSortTh("Value ($)", "value_usd", "text-center")}
             </tr>
@@ -375,6 +416,34 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
               })
             )}
           </tbody>
+          <tfoot className="sticky bottom-0 bg-slate-50 border-t-2 border-slate-200">
+            <tr>
+              <td className="px-4 py-2 text-xs font-semibold text-slate-500">
+                {groups.length} product{groups.length !== 1 ? 's' : ''}
+              </td>
+              <td className="px-4 py-2 text-center text-xs font-semibold text-slate-600 tabular-nums">
+                {formatWeight(totals.jpKg)}
+                {totals.jpUnits > 0 && <div className="text-slate-400 font-normal">{totals.jpUnits} units</div>}
+              </td>
+              <td className="px-4 py-2 text-center text-xs font-semibold text-slate-600 tabular-nums">
+                {formatWeight(totals.usKg)}
+                {totals.usUnits > 0 && <div className="text-slate-400 font-normal">{totals.usUnits} units</div>}
+              </td>
+              <td className="px-4 py-2 text-center text-xs font-semibold tabular-nums">
+                <span className={totals.transitUnits > 0 ? 'text-amber-600' : 'text-slate-600'}>
+                  {formatWeight(totals.transitKg)}
+                </span>
+                {totals.transitUnits > 0 && <div className="text-amber-500 font-normal">{totals.transitUnits} units</div>}
+              </td>
+              <td className="px-4 py-2 text-center text-xs font-bold text-slate-700 tabular-nums">
+                {formatWeight(totals.totalKg)}
+                {totals.totalUnits > 0 && <div className="text-slate-400 font-normal">{totals.totalUnits} units</div>}
+              </td>
+              <td className="px-4 py-2 text-center text-xs font-bold text-slate-700 tabular-nums">
+                ${totals.value.toFixed(2)}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -403,8 +472,12 @@ function ProductGroupRows({
   return (
     <>
       {/* Product parent row */}
-      <tr
-        className={`border-b border-slate-200 cursor-pointer ${isProductExpanded ? 'bg-[#F0EFEA] hover:bg-[#EBEAE4]' : 'bg-[#FAFAF8] hover:bg-[#F0EFEA]'}`}
+      <motion.tr
+        layout
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className={`border-b border-slate-200 cursor-pointer transition-colors duration-150 ${isProductExpanded ? 'bg-slate-50 hover:bg-slate-100' : 'bg-white hover:bg-slate-50'}`}
         onClick={onToggleProduct}
       >
         <td className="pl-3 pr-2 py-3">
@@ -415,6 +488,9 @@ function ProductGroupRows({
                 : <ChevronRight className="w-4 h-4" />
               }
             </span>
+            {group.worst_status !== 'ok' && (
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${group.worst_status === 'low' ? 'bg-amber-400' : 'bg-slate-300'}`} />
+            )}
             <div>
               <span className="font-semibold text-slate-900">{group.product_id}</span>
               {group.product_name && (
@@ -432,8 +508,10 @@ function ProductGroupRows({
           {group.us_stock > 0 && <div className="text-xs text-slate-400">{group.us_stock} units</div>}
         </td>
         <td className="px-4 py-3 text-center">
-          <div className="text-slate-500">{formatWeight(group.in_transit_weight_kg)}</div>
-          {group.in_transit > 0 && <div className="text-xs text-slate-400">{group.in_transit} units</div>}
+          <div className={group.in_transit > 0 ? 'font-medium text-amber-600' : 'text-slate-500'}>
+            {formatWeight(group.in_transit_weight_kg)}
+          </div>
+          {group.in_transit > 0 && <div className="text-xs text-amber-500">{group.in_transit} units</div>}
         </td>
         <td className="px-4 py-3 text-center">
           <div className="font-bold text-slate-900">{formatWeight(group.total_weight_kg)}</div>
@@ -442,27 +520,29 @@ function ProductGroupRows({
         <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-600">
           ${group.value_usd.toFixed(2)}
         </td>
-      </tr>
+      </motion.tr>
 
       {/* Child SKU rows */}
-      {isProductExpanded && group.skus.map((sku, i) => {
-        const isLast = i === group.skus.length - 1
-        const isSkuExpanded = expandedSkuId === sku.sku_id
-        const label = variantLabel(sku.sku_name, sku.product_id)
+      <AnimatePresence initial={false}>
+        {isProductExpanded && group.skus.map((sku, i) => {
+          const isLast = i === group.skus.length - 1
+          const isSkuExpanded = expandedSkuId === sku.sku_id
+          const label = variantLabel(sku.sku_name, sku.product_id)
 
-        return (
-          <SkuChildRows
-            key={sku.sku_id}
-            sku={sku}
-            label={label}
-            isLast={isLast}
-            isSkuExpanded={isSkuExpanded}
-            colCount={colCount}
-            onToggleSku={() => onToggleSku(sku.sku_id)}
-            typeBadge={typeBadge}
-          />
-        )
-      })}
+          return (
+            <SkuChildRows
+              key={sku.sku_id}
+              sku={sku}
+              label={label}
+              isLast={isLast}
+              isSkuExpanded={isSkuExpanded}
+              colCount={colCount}
+              onToggleSku={() => onToggleSku(sku.sku_id)}
+              typeBadge={typeBadge}
+            />
+          )
+        })}
+      </AnimatePresence>
     </>
   )
 }
@@ -488,22 +568,29 @@ function SkuChildRows({
 }) {
   return (
     <>
-      <tr
-        className={`border-b border-slate-100 hover:bg-slate-50 cursor-pointer bg-white ${isSkuExpanded ? 'bg-slate-50' : ''}`}
+      <motion.tr
+        layout
+        initial={{ opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -8 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className={`border-b border-slate-100 cursor-pointer transition-colors duration-150 bg-white hover:bg-slate-50 ${isSkuExpanded ? 'bg-slate-50' : ''}`}
         onClick={onToggleSku}
       >
-        <td className="pl-8 pr-2 py-2 text-slate-700">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-slate-300 shrink-0">
-              {isSkuExpanded
-                ? <ChevronDown className="w-3.5 h-3.5 text-green-500" />
-                : <ChevronRight className="w-3.5 h-3.5" />
-              }
+        <td className="pr-2 py-2 text-slate-700">
+          <div className="ml-6 border-l border-slate-200 pl-3">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-slate-300 shrink-0">
+                {isSkuExpanded
+                  ? <ChevronDown className="w-3.5 h-3.5 text-green-500" />
+                  : <ChevronRight className="w-3.5 h-3.5" />
+                }
+              </span>
+              <span className="font-medium">{label}</span>
+              <span className="text-xs text-slate-400">{sku.sku_name}</span>
+              {typeBadge(sku.sku_type)}
             </span>
-            <span className="font-medium">{label}</span>
-            <span className="text-xs text-slate-400">{sku.sku_name}</span>
-            {typeBadge(sku.sku_type)}
-          </span>
+          </div>
         </td>
         <td className="px-4 py-2 text-center">
           <div className="text-slate-600">{formatWeight(sku.jp_stock * sku.unit_weight_kg)}</div>
@@ -514,8 +601,10 @@ function SkuChildRows({
           {sku.us_stock > 0 && <div className="text-xs text-slate-400">{sku.us_stock} units</div>}
         </td>
         <td className="px-4 py-2 text-center">
-          <div className="text-slate-400">{formatWeight(sku.in_transit * sku.unit_weight_kg)}</div>
-          {sku.in_transit > 0 && <div className="text-xs text-slate-400">{sku.in_transit} units</div>}
+          <div className={sku.in_transit > 0 ? 'text-amber-600 font-medium' : 'text-slate-400'}>
+            {formatWeight(sku.in_transit * sku.unit_weight_kg)}
+          </div>
+          {sku.in_transit > 0 && <div className="text-xs text-amber-500">{sku.in_transit} units</div>}
         </td>
         <td className="px-4 py-2 text-center">
           <div className="font-medium text-slate-800">{formatWeight(sku.total * sku.unit_weight_kg)}</div>
@@ -524,14 +613,22 @@ function SkuChildRows({
         <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-500">
           ${sku.value_usd.toFixed(2)}
         </td>
-      </tr>
-      {isSkuExpanded && (
-        <tr>
-          <td colSpan={colCount + 1} className="p-0">
-            <SKUDetailExpansion skuId={sku.sku_id} skuName={sku.sku_name} />
-          </td>
-        </tr>
-      )}
+      </motion.tr>
+      <AnimatePresence initial={false}>
+        {isSkuExpanded && (
+          <motion.tr
+            key="detail"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <td colSpan={colCount + 1} className="p-0">
+              <SKUDetailExpansion skuId={sku.sku_id} skuName={sku.sku_name} />
+            </td>
+          </motion.tr>
+        )}
+      </AnimatePresence>
     </>
   )
 }

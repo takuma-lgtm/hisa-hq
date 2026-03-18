@@ -41,6 +41,7 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
   const hasEmail = !!(lead as Record<string, unknown>).email
   const phoneNum = (lead as Record<string, unknown>).phone as string | undefined
   const emailAddr = (lead as Record<string, unknown>).email as string | undefined
+  const websiteUrl = (lead as Record<string, unknown>).website_url as string | undefined
 
   const [channel, setChannel] = useState<MessageChannel>('instagram_dm')
   const [message, setMessage] = useState(initialMessage ?? '')
@@ -48,12 +49,64 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
 
+  // Email finder state
+  const [foundEmail, setFoundEmail] = useState<string | null>(null)
+  const [findState, setFindState] = useState<'idle' | 'loading' | 'found' | 'error'>('idle')
+  const [emailCandidates, setEmailCandidates] = useState<string[]>([])
+  const [findStatusMessage, setFindStatusMessage] = useState<string | null>(null)
+
+  const effectiveEmail = foundEmail ?? emailAddr
+
   // Update message when initialMessage changes (follow-up pre-fill)
   useEffect(() => {
     if (initialMessage) setMessage(initialMessage)
   }, [initialMessage])
 
   if (!canEdit) return null
+
+  async function handleFindEmail() {
+    setFindState('loading')
+    setEmailCandidates([])
+    setFindStatusMessage(null)
+    try {
+      const res = await fetch(`/api/leads/${leadId}/find-email`, { method: 'POST' })
+      if (!res.body) throw new Error('No stream')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value)
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            if (event.type === 'status') setFindStatusMessage(event.message)
+            if (event.type === 'result') {
+              setEmailCandidates(event.emails ?? [])
+              setFindState('found')
+            }
+          } catch {
+            // ignore malformed lines
+          }
+        }
+      }
+    } catch {
+      setFindState('error')
+    }
+  }
+
+  async function handleSelectEmail(email: string) {
+    await fetch('/api/leads/enrich/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId: leadId, email }),
+    })
+    setFoundEmail(email)
+    setFindState('idle')
+  }
 
   async function handleSend() {
     if (!message.trim()) return
@@ -89,8 +142,8 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
         const subject = encodeURIComponent('Matcha Partnership - Hisa Matcha')
         const body = encodeURIComponent(message.trim())
         await navigator.clipboard.writeText(message.trim())
-        if (emailAddr) {
-          window.open(`mailto:${emailAddr}?subject=${subject}&body=${body}`, '_blank')
+        if (effectiveEmail) {
+          window.open(`mailto:${effectiveEmail}?subject=${subject}&body=${body}`, '_blank')
           setFeedback('Opening email client...')
         } else {
           window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
@@ -145,6 +198,61 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
         ))}
       </div>
 
+      {/* Email finder — only shown on Email tab */}
+      {channel === 'email' && !effectiveEmail && findState !== 'found' && (
+        <div className="rounded border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">No email on file.</p>
+            <button
+              onClick={handleFindEmail}
+              disabled={!websiteUrl || findState === 'loading'}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              {findState === 'loading' ? 'Searching...' : 'Find email →'}
+            </button>
+          </div>
+          {findState === 'loading' && findStatusMessage && (
+            <p className="text-xs text-slate-500 animate-pulse">{findStatusMessage}</p>
+          )}
+          {!websiteUrl && <p className="text-xs text-slate-400">Add a website URL to this lead first.</p>}
+          {findState === 'error' && <p className="text-xs text-red-500">Search failed — try again.</p>}
+        </div>
+      )}
+
+      {channel === 'email' && !effectiveEmail && findState === 'found' && (
+        <div className="rounded border border-slate-200 bg-white p-2.5 space-y-1.5">
+          <p className="text-xs font-medium text-slate-600">
+            {emailCandidates.length > 0 ? 'Select an email:' : 'No email found.'}
+          </p>
+          {emailCandidates.map(email => (
+            <button
+              key={email}
+              onClick={() => handleSelectEmail(email)}
+              className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-slate-50 border border-slate-100 text-blue-600 font-medium"
+            >
+              {email}
+            </button>
+          ))}
+          <button onClick={() => setFindState('idle')} className="text-xs text-slate-400 hover:text-slate-600">
+            ← Back
+          </button>
+        </div>
+      )}
+
+      {channel === 'email' && effectiveEmail && (
+        <div className="flex items-center gap-2 text-xs bg-green-50 text-green-700 px-2.5 py-1.5 rounded">
+          <span>Sending to: <strong>{effectiveEmail}</strong></span>
+          {foundEmail && (
+            <button
+              onClick={() => { setFoundEmail(null); setFindState('idle') }}
+              className="ml-auto text-green-500 hover:text-green-700"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Message textarea */}
       <textarea
         value={message}
@@ -164,7 +272,7 @@ export default function MessageComposer({ leadId, lead, canEdit, onMessageSent, 
       {/* Send button */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {channel === 'instagram_dm' ? 'Opens IG DM + copies message' : channel === 'whatsapp' ? 'Opens WhatsApp with pre-filled message' : 'Opens email client'}
+          {channel === 'instagram_dm' ? 'Opens IG DM + copies message' : channel === 'whatsapp' ? 'Opens WhatsApp with pre-filled message' : effectiveEmail ? `Sending to ${effectiveEmail}` : 'Opens email client (no address)'}
         </p>
         <button
           onClick={handleSend}

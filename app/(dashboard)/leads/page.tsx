@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { UserRole } from '@/types/database'
 import AddLeadsButton from './AddLeadsButton'
-import LeadsTabSwitcher from './LeadsTabSwitcher'
 import LeadsPageContent from './LeadsPageContent'
 
 export default async function LeadsPage() {
@@ -71,10 +70,6 @@ export default async function LeadsPage() {
         {canImport && <AddLeadsButton />}
       </div>
 
-      {/* Leads / Discover tabs */}
-      <LeadsTabSwitcher />
-
-      {/* Tab content */}
       <LeadsPageContent
         leads={leads ?? []}
         profiles={profiles ?? []}

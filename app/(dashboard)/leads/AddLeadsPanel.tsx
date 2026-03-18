@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Clipboard, CheckCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import type { DiscoveryRun, DiscoveredProspect } from '@/types/database'
 import DedupModal from './DedupModal'
 import ManualLeadForm from './ManualLeadForm'
@@ -27,10 +27,7 @@ function relativeTime(dateStr: string): string {
 
 export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
   // Gemini
-  const [geminiCity, setGeminiCity] = useState('')
-  const [showPaste, setShowPaste] = useState(false)
   const [pasteText, setPasteText] = useState('')
-  const [copiedCity, setCopiedCity] = useState(false)
 
   // Maps
   const [mapsLocation, setMapsLocation] = useState('')
@@ -94,12 +91,7 @@ export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
   }, [runs, fetchRuns])
 
   // --- Gemini ---
-  async function handleOpenGemini() {
-    if (geminiCity.trim()) {
-      await navigator.clipboard.writeText(geminiCity.trim())
-      setCopiedCity(true)
-      setTimeout(() => setCopiedCity(false), 2000)
-    }
+  function handleOpenGemini() {
     window.open(GEMINI_GEM_URL, '_blank')
   }
 
@@ -130,7 +122,6 @@ export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
     if (res.ok) {
       const data = await res.json()
       setPasteText('')
-      setShowPaste(false)
       alert(`Imported ${data.imported} leads (${data.skipped} duplicates skipped)`)
       window.location.reload()
     } else {
@@ -203,32 +194,32 @@ export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
       )}
 
       {/* Tool Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         {/* Card 1: Gemini */}
-        <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-slate-900">Generate Leads</h3>
-          <p className="text-xs text-slate-500">Open Gemini to find cafés in a target city</p>
-          <input type="text" value={geminiCity} onChange={e => setGeminiCity(e.target.value)} placeholder="e.g. Austin, TX" className={inputClass} />
-          <div className="flex gap-2">
-            <button onClick={handleOpenGemini} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900">
-              {copiedCity ? 'Copied! Paste city in Gemini' : 'Open Gemini'}
-              {copiedCity && <CheckCircle className="w-3.5 h-3.5 text-green-300" />}
+          <p className="text-xs text-slate-500">Open Gemini, copy the results, and paste below</p>
+          <textarea
+            value={pasteText}
+            onChange={e => setPasteText(e.target.value)}
+            rows={6}
+            placeholder="Paste Gemini TSV results here..."
+            className={`${inputClass} resize-none font-mono text-xs flex-1`}
+          />
+          <div className="flex gap-2 mt-auto">
+            <button onClick={handleOpenGemini} className="flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900">
+              Open Gemini
             </button>
-            <button onClick={() => setShowPaste(!showPaste)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">
-              <Clipboard className="w-3.5 h-3.5" />
-              Paste
-            </button>
+            {pasteText.trim() && (
+              <button onClick={handlePasteImport} className="px-3 py-2 text-sm font-medium rounded-lg bg-green-700 text-white hover:bg-green-800">
+                Import
+              </button>
+            )}
           </div>
-          {showPaste && (
-            <div className="space-y-2">
-              <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={4} placeholder="Paste TSV output from Gemini here..." className={`${inputClass} resize-none font-mono text-xs`} />
-              <button onClick={handlePasteImport} disabled={!pasteText.trim()} className="w-full px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50">Import</button>
-            </div>
-          )}
         </div>
 
         {/* Card 2: Google Maps */}
-        <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-slate-900">Google Maps Search</h3>
           <p className="text-xs text-slate-500">Find cafés in an area via Google Maps</p>
           <input type="text" value={mapsLocation} onChange={e => setMapsLocation(e.target.value)} placeholder="e.g. Brooklyn, NY" className={inputClass} />
@@ -240,19 +231,19 @@ export default function AddLeadsPanel({ onClose }: { onClose?: () => void }) {
             </select>
             <input type="text" value={mapsKeywords} onChange={e => setMapsKeywords(e.target.value)} placeholder="Keywords..." className={`${inputClass} text-xs`} />
           </div>
-          <button onClick={handleMapsSearch} disabled={mapsLoading || !mapsLocation.trim()} className="w-full px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50">
+          <button onClick={handleMapsSearch} disabled={mapsLoading || !mapsLocation.trim()} className="w-full px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50 mt-auto">
             {mapsLoading ? 'Searching...' : 'Search Google Maps'}
           </button>
           {mapsLoading && <p className="text-xs text-slate-400 text-center">Running in background</p>}
         </div>
 
         {/* Card 3: Instagram */}
-        <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-slate-900">Instagram Search</h3>
           <p className="text-xs text-slate-500">Find cafés posting about matcha on Instagram</p>
           <input type="text" value={igHashtags} onChange={e => setIgHashtags(e.target.value)} placeholder="matchalatte, matchacafe, specialtycoffee" className={inputClass} />
           <input type="text" value={igLocation} onChange={e => setIgLocation(e.target.value)} placeholder="Location (optional, e.g. New York)" className={inputClass} />
-          <button onClick={handleIgSearch} disabled={igLoading || !igHashtags.trim()} className="w-full px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50">
+          <button onClick={handleIgSearch} disabled={igLoading || !igHashtags.trim()} className="w-full px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-900 disabled:opacity-50 mt-auto">
             {igLoading ? 'Searching...' : 'Search Instagram'}
           </button>
           {igLoading && <p className="text-xs text-slate-400 text-center">Running in background</p>}

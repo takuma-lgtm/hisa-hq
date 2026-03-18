@@ -12,6 +12,20 @@ const ALLOWED_FIELDS = new Set([
   'qualified_volume_kg',
   'qualified_budget',
   'qualified_samples_agreed',
+  // Cafe intelligence (captured in LeadIntelModal)
+  'serves_matcha',
+  'matcha_interest_level',
+  'customer_bucket',
+  'current_supplier',
+  'monthly_matcha_usage_kg',
+  'current_delivered_price_per_kg',
+  'market_intel_notes',
+  'disqualification_reason',
+  // Contact details
+  'contact_person',
+  'email',
+  'phone',
+  'address',
 ])
 
 const VALID_STAGES = new Set<LeadStage>([
