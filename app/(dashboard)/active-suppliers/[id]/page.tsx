@@ -14,7 +14,7 @@ export default async function ActiveSupplierDetailPage({
 
   const service = createServiceClient()
 
-  const [{ data: profile }, { data: supplier }, { data: orders }, { data: comms }, { data: linkedProducts }, { data: templates }, { data: allProducts }] = await Promise.all([
+  const [{ data: profile }, { data: supplier }, { data: orders }, { data: comms }, { data: linkedProducts }, { data: templates }, { data: allProducts }, { data: allSkus }] = await Promise.all([
     service.from('profiles').select('role').eq('id', user.id).single(),
     service.from('suppliers').select('*').eq('supplier_id', id).single(),
     service.from('supplier_purchase_orders').select('*, items:supplier_purchase_order_items(*)').eq('supplier_id', id).order('order_date', { ascending: false }),
@@ -22,6 +22,7 @@ export default async function ActiveSupplierDetailPage({
     service.from('supplier_products').select('*, product:products(product_id, customer_facing_product_name, product_type)').eq('supplier_id', id),
     service.from('supplier_message_templates').select('*').order('is_default', { ascending: false }),
     service.from('products').select('product_id, customer_facing_product_name').eq('active', true).order('customer_facing_product_name'),
+    service.from('skus').select('sku_id, sku_name, sku_type, unit_weight_kg').eq('is_active', true).order('sku_name'),
   ])
 
   if (!supplier || supplier.stage !== 'deal_established') notFound()
@@ -37,6 +38,7 @@ export default async function ActiveSupplierDetailPage({
       linkedProducts={linkedProducts ?? []}
       templates={templates ?? []}
       allProducts={allProducts ?? []}
+      allSkus={allSkus ?? []}
       canEdit={canEdit}
     />
   )

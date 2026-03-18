@@ -18,6 +18,7 @@ interface PivotedRow {
   product_id: string | null
   sku_type: string
   unit_cost_jpy: number
+  unit_weight_kg: number
   jp_stock: number
   us_stock: number
   in_transit: number
@@ -36,6 +37,10 @@ interface ProductGroup {
   in_transit: number
   total: number
   value_usd: number
+  jp_weight_kg: number
+  us_weight_kg: number
+  in_transit_weight_kg: number
+  total_weight_kg: number
   worst_status: 'out' | 'low' | 'ok'
 }
 
@@ -49,6 +54,12 @@ function variantLabel(skuName: string, productId: string | null): string {
     return skuName.slice(prefix.length).replace(/_/g, ' ')
   }
   return skuName
+}
+
+function formatWeight(kg: number): string {
+  if (kg === 0) return '—'
+  if (kg < 1) return `${Math.round(kg * 1000)}g`
+  return `${Number.isInteger(kg) ? kg : kg.toFixed(1)}kg`
 }
 
 function getSkuStatus(total: number, threshold: number | null): 'out' | 'low' | 'ok' {
@@ -99,6 +110,7 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
           product_id: sku.product_id,
           sku_type: sku.sku_type,
           unit_cost_jpy: sku.unit_cost_jpy ?? 0,
+          unit_weight_kg: sku.unit_weight_kg ?? 0,
           jp_stock: jp,
           us_stock: us,
           in_transit: transit,
@@ -171,6 +183,10 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
         in_transit: skus.reduce((s, r) => s + r.in_transit, 0),
         total: skus.reduce((s, r) => s + r.total, 0),
         value_usd: skus.reduce((s, r) => s + r.value_usd, 0),
+        jp_weight_kg: skus.reduce((s, r) => s + r.jp_stock * r.unit_weight_kg, 0),
+        us_weight_kg: skus.reduce((s, r) => s + r.us_stock * r.unit_weight_kg, 0),
+        in_transit_weight_kg: skus.reduce((s, r) => s + r.in_transit * r.unit_weight_kg, 0),
+        total_weight_kg: skus.reduce((s, r) => s + r.total * r.unit_weight_kg, 0),
         worst_status: getSkuStatus(skus.reduce((s, r) => s + r.total, 0), null),
       })
     }
@@ -317,13 +333,12 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
           <colgroup>
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '18%' }} />
+            <col style={{ width: '22%' }} />
             <col style={{ width: '13%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '9%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '17%' }} />
           </colgroup>
           <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
             <tr>
@@ -333,7 +348,6 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
               {renderSortTh("In Transit (JP→US)", "in_transit", "text-center")}
               {renderSortTh("Total", "total", "text-center")}
               {renderSortTh("Value ($)", "value_usd", "text-center")}
-              <th className="px-3 py-2 text-center text-xs font-medium text-slate-500">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -355,8 +369,6 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
                     colCount={colCount}
                     onToggleProduct={() => toggleProduct(group.product_id)}
                     onToggleSku={toggleSku}
-                    statusBadge={statusBadge}
-                    statusBadgeFromStatus={statusBadgeFromStatus}
                     typeBadge={typeBadge}
                   />
                 )
@@ -378,8 +390,6 @@ function ProductGroupRows({
   colCount,
   onToggleProduct,
   onToggleSku,
-  statusBadge,
-  statusBadgeFromStatus,
   typeBadge,
 }: {
   group: ProductGroup
@@ -388,8 +398,6 @@ function ProductGroupRows({
   colCount: number
   onToggleProduct: () => void
   onToggleSku: (skuId: string) => void
-  statusBadge: (total: number, threshold: number | null) => React.ReactNode
-  statusBadgeFromStatus: (status: 'out' | 'low' | 'ok') => React.ReactNode
   typeBadge: (type: string) => React.ReactNode
 }) {
   return (
@@ -415,14 +423,25 @@ function ProductGroupRows({
             </div>
           </div>
         </td>
-        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-700">{group.jp_stock}</td>
-        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-700">{group.us_stock}</td>
-        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap text-slate-500">{group.in_transit || '—'}</td>
-        <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-bold text-slate-900">{group.total}</td>
+        <td className="px-4 py-3 text-center">
+          <div className="font-medium text-slate-700">{formatWeight(group.jp_weight_kg)}</div>
+          {group.jp_stock > 0 && <div className="text-xs text-slate-400">{group.jp_stock} units</div>}
+        </td>
+        <td className="px-4 py-3 text-center">
+          <div className="font-medium text-slate-700">{formatWeight(group.us_weight_kg)}</div>
+          {group.us_stock > 0 && <div className="text-xs text-slate-400">{group.us_stock} units</div>}
+        </td>
+        <td className="px-4 py-3 text-center">
+          <div className="text-slate-500">{formatWeight(group.in_transit_weight_kg)}</div>
+          {group.in_transit > 0 && <div className="text-xs text-slate-400">{group.in_transit} units</div>}
+        </td>
+        <td className="px-4 py-3 text-center">
+          <div className="font-bold text-slate-900">{formatWeight(group.total_weight_kg)}</div>
+          {group.total > 0 && <div className="text-xs text-slate-400">{group.total} units</div>}
+        </td>
         <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-600">
           ${group.value_usd.toFixed(2)}
         </td>
-        <td className="px-4 py-3 text-center">{statusBadgeFromStatus(group.worst_status)}</td>
       </tr>
 
       {/* Child SKU rows */}
@@ -440,7 +459,6 @@ function ProductGroupRows({
             isSkuExpanded={isSkuExpanded}
             colCount={colCount}
             onToggleSku={() => onToggleSku(sku.sku_id)}
-            statusBadge={statusBadge}
             typeBadge={typeBadge}
           />
         )
@@ -458,7 +476,6 @@ function SkuChildRows({
   isSkuExpanded,
   colCount,
   onToggleSku,
-  statusBadge,
   typeBadge,
 }: {
   sku: PivotedRow
@@ -467,7 +484,6 @@ function SkuChildRows({
   isSkuExpanded: boolean
   colCount: number
   onToggleSku: () => void
-  statusBadge: (total: number, threshold: number | null) => React.ReactNode
   typeBadge: (type: string) => React.ReactNode
 }) {
   return (
@@ -489,14 +505,25 @@ function SkuChildRows({
             {typeBadge(sku.sku_type)}
           </span>
         </td>
-        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.jp_stock}</td>
-        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.us_stock}</td>
-        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-400">{sku.in_transit || '—'}</td>
-        <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap font-medium text-slate-800">{sku.total}</td>
+        <td className="px-4 py-2 text-center">
+          <div className="text-slate-600">{formatWeight(sku.jp_stock * sku.unit_weight_kg)}</div>
+          {sku.jp_stock > 0 && <div className="text-xs text-slate-400">{sku.jp_stock} units</div>}
+        </td>
+        <td className="px-4 py-2 text-center">
+          <div className="text-slate-600">{formatWeight(sku.us_stock * sku.unit_weight_kg)}</div>
+          {sku.us_stock > 0 && <div className="text-xs text-slate-400">{sku.us_stock} units</div>}
+        </td>
+        <td className="px-4 py-2 text-center">
+          <div className="text-slate-400">{formatWeight(sku.in_transit * sku.unit_weight_kg)}</div>
+          {sku.in_transit > 0 && <div className="text-xs text-slate-400">{sku.in_transit} units</div>}
+        </td>
+        <td className="px-4 py-2 text-center">
+          <div className="font-medium text-slate-800">{formatWeight(sku.total * sku.unit_weight_kg)}</div>
+          {sku.total > 0 && <div className="text-xs text-slate-400">{sku.total} units</div>}
+        </td>
         <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-500">
           ${sku.value_usd.toFixed(2)}
         </td>
-        <td className="px-4 py-2 text-center">{statusBadge(sku.total, sku.low_stock_threshold)}</td>
       </tr>
       {isSkuExpanded && (
         <tr>

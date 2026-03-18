@@ -11,6 +11,7 @@ import {
   Settings,
   Handshake,
   Search,
+  Truck,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -55,6 +56,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Inventory & Products',
     items: [
+      { href: '/logistics', label: 'Logistics', icon: Truck, roles: ['owner', 'admin'] },
       { href: '/inventory', label: 'Inventory', icon: Boxes, roles: ['owner', 'admin', 'member'] },
       { href: '/products', label: 'Products', icon: Package, roles: ['owner', 'admin', 'member'] },
     ],

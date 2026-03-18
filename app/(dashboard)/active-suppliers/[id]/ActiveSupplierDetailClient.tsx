@@ -28,6 +28,13 @@ interface LinkedProduct extends SupplierProduct {
   product: { product_id: string; customer_facing_product_name: string; product_type: string | null } | null
 }
 
+interface Sku {
+  sku_id: string
+  sku_name: string
+  sku_type: string
+  unit_weight_kg: number | null
+}
+
 interface Props {
   supplier: Supplier
   orders: OrderWithItems[]
@@ -35,6 +42,7 @@ interface Props {
   linkedProducts: LinkedProduct[]
   templates: SupplierMessageTemplate[]
   allProducts: { product_id: string; customer_facing_product_name: string }[]
+  allSkus: Sku[]
   canEdit: boolean
 }
 
@@ -67,6 +75,7 @@ export default function ActiveSupplierDetailClient({
   linkedProducts,
   templates,
   allProducts,
+  allSkus,
   canEdit,
 }: Props) {
   const router = useRouter()
@@ -86,13 +95,16 @@ export default function ActiveSupplierDetailClient({
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
   const [expectedDelivery, setExpectedDelivery] = useState('')
   const [orderNotes, setOrderNotes] = useState('')
-  const [orderItems, setOrderItems] = useState<{ product_id: string; product_name_jpn: string; quantity_kg: string; price_per_kg_jpy: string }[]>([
-    { product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '' },
+  const [orderItems, setOrderItems] = useState<{ product_id: string; product_name_jpn: string; quantity_kg: string; price_per_kg_jpy: string; sku_id: string }[]>([
+    { product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '', sku_id: '' },
   ])
   const [savingOrder, setSavingOrder] = useState(false)
 
   // Expanded PO row
   const [expandedPo, setExpandedPo] = useState<string | null>(null)
+
+  // Mark delivered state
+  const [markingDelivered, setMarkingDelivered] = useState<string | null>(null)
 
   const totalSpend = orders.reduce((sum, o) => sum + (o.total_amount_jpy ?? 0), 0)
   const avgQuality = orders.filter((o) => o.quality_rating).length > 0
@@ -144,6 +156,7 @@ export default function ActiveSupplierDetailClient({
             product_name_jpn: i.product_name_jpn || null,
             quantity_kg: parseFloat(i.quantity_kg),
             price_per_kg_jpy: parseFloat(i.price_per_kg_jpy),
+            sku_id: i.sku_id || null,
           })),
         }),
       })
@@ -151,7 +164,7 @@ export default function ActiveSupplierDetailClient({
         const newOrder = await res.json()
         setOrders((prev) => [newOrder, ...prev])
         setOrderModalOpen(false)
-        setOrderItems([{ product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '' }])
+        setOrderItems([{ product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '', sku_id: '' }])
         setOrderNotes('')
       }
     } finally {
@@ -159,8 +172,25 @@ export default function ActiveSupplierDetailClient({
     }
   }
 
+  async function markDelivered(poId: string) {
+    setMarkingDelivered(poId)
+    try {
+      const res = await fetch(`/api/suppliers/${supplier.supplier_id}/orders/${poId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_status: 'delivered', actual_delivery: new Date().toISOString().split('T')[0] }),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setOrders((prev) => prev.map((o) => o.po_id === poId ? { ...o, ...updated } : o))
+      }
+    } finally {
+      setMarkingDelivered(null)
+    }
+  }
+
   function addOrderItem() {
-    setOrderItems((prev) => [...prev, { product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '' }])
+    setOrderItems((prev) => [...prev, { product_id: '', product_name_jpn: '', quantity_kg: '', price_per_kg_jpy: '', sku_id: '' }])
   }
 
   function removeOrderItem(idx: number) {
@@ -349,8 +379,8 @@ export default function ActiveSupplierDetailClient({
                         <label className="text-xs font-medium text-slate-600 block mb-1">明細</label>
                         <div className="space-y-2">
                           {orderItems.map((item, idx) => (
-                            <div key={idx} className="flex gap-2 items-end">
-                              <div className="flex-1">
+                            <div key={idx} className="space-y-1.5 pb-2 border-b border-slate-100 last:border-0">
+                              <div className="flex gap-2 items-center">
                                 <select
                                   value={item.product_id}
                                   onChange={(e) => {
@@ -358,29 +388,52 @@ export default function ActiveSupplierDetailClient({
                                     const p = allProducts.find((p) => p.product_id === e.target.value)
                                     if (p) updateOrderItem(idx, 'product_name_jpn', p.customer_facing_product_name)
                                   }}
-                                  className="w-full border border-slate-200 rounded px-2 py-1.5 text-xs"
+                                  className="flex-1 border border-slate-200 rounded px-2 py-1.5 text-xs"
                                 >
                                   <option value="">商品を選択</option>
                                   {allProducts.map((p) => (
                                     <option key={p.product_id} value={p.product_id}>{p.customer_facing_product_name}</option>
                                   ))}
                                 </select>
+                                <input
+                                  type="number" placeholder="kg" value={item.quantity_kg}
+                                  onChange={(e) => updateOrderItem(idx, 'quantity_kg', e.target.value)}
+                                  className="w-20 border border-slate-200 rounded px-2 py-1.5 text-xs"
+                                />
+                                <input
+                                  type="number" placeholder="¥/kg" value={item.price_per_kg_jpy}
+                                  onChange={(e) => updateOrderItem(idx, 'price_per_kg_jpy', e.target.value)}
+                                  className="w-24 border border-slate-200 rounded px-2 py-1.5 text-xs"
+                                />
+                                {orderItems.length > 1 && (
+                                  <button onClick={() => removeOrderItem(idx)} className="p-1 text-slate-400 hover:text-red-500">
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
-                              <input
-                                type="number" placeholder="kg" value={item.quantity_kg}
-                                onChange={(e) => updateOrderItem(idx, 'quantity_kg', e.target.value)}
-                                className="w-20 border border-slate-200 rounded px-2 py-1.5 text-xs"
-                              />
-                              <input
-                                type="number" placeholder="¥/kg" value={item.price_per_kg_jpy}
-                                onChange={(e) => updateOrderItem(idx, 'price_per_kg_jpy', e.target.value)}
-                                className="w-24 border border-slate-200 rounded px-2 py-1.5 text-xs"
-                              />
-                              {orderItems.length > 1 && (
-                                <button onClick={() => removeOrderItem(idx)} className="p-1 text-slate-400 hover:text-red-500">
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={item.sku_id}
+                                  onChange={(e) => updateOrderItem(idx, 'sku_id', e.target.value)}
+                                  className="flex-1 border border-slate-200 rounded px-2 py-1.5 text-xs text-slate-600"
+                                >
+                                  <option value="">SKUを選択（在庫自動更新用）</option>
+                                  {allSkus.map((s) => (
+                                    <option key={s.sku_id} value={s.sku_id}>
+                                      {s.sku_name}{s.unit_weight_kg ? ` (${s.unit_weight_kg}kg/unit)` : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                {item.sku_id && item.quantity_kg && (() => {
+                                  const sku = allSkus.find(s => s.sku_id === item.sku_id)
+                                  const units = sku?.unit_weight_kg && sku.unit_weight_kg > 0
+                                    ? Math.round(parseFloat(item.quantity_kg) / sku.unit_weight_kg)
+                                    : null
+                                  return units ? (
+                                    <span className="text-xs text-slate-400 whitespace-nowrap">→ {units} units</span>
+                                  ) : null
+                                })()}
+                              </div>
                             </div>
                           ))}
                           <button onClick={addOrderItem} className="text-xs text-slate-700 hover:text-slate-800">+ 明細を追加</button>
@@ -433,6 +486,16 @@ export default function ActiveSupplierDetailClient({
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${PAYMENT_STATUS_COLORS[order.payment_status] ?? ''}`}>
                         {order.payment_status}
                       </span>
+                      {canEdit && order.delivery_status !== 'delivered' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markDelivered(order.po_id) }}
+                          disabled={markingDelivered === order.po_id}
+                          className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded border border-green-300 text-green-700 hover:bg-green-50 disabled:opacity-50 transition-colors"
+                        >
+                          <Package className="w-3 h-3" />
+                          {markingDelivered === order.po_id ? '...' : '受取済'}
+                        </button>
+                      )}
                     </div>
                     {expandedPo === order.po_id && (
                       <div className="px-4 pb-3 border-t border-slate-100">

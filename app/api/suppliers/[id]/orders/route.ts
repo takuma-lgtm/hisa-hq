@@ -37,7 +37,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const items: { product_id?: string; product_name_jpn?: string; quantity_kg: number; price_per_kg_jpy: number; notes?: string }[] = body.items ?? []
+  const items: { product_id?: string; product_name_jpn?: string; quantity_kg: number; price_per_kg_jpy: number; sku_id?: string; notes?: string }[] = body.items ?? []
 
   if (items.length === 0) {
     return NextResponse.json({ error: 'At least one line item is required' }, { status: 400 })
@@ -81,9 +81,11 @@ export async function POST(
     quantity_kg: item.quantity_kg,
     price_per_kg_jpy: item.price_per_kg_jpy,
     subtotal_jpy: item.quantity_kg * item.price_per_kg_jpy,
+    sku_id: item.sku_id ?? null,
   }))
 
-  const { error: itemsError } = await service
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: itemsError } = await (service as any)
     .from('supplier_purchase_order_items')
     .insert(lineItems)
 
