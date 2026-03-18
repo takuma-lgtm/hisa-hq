@@ -71,6 +71,7 @@ export default function DiscoverPanel() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRuns()
   }, [fetchRuns])
 

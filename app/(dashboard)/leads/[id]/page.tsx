@@ -22,8 +22,8 @@ export default async function LeadDetailPage({
 
   if (!lead || lead.status !== 'lead') notFound()
 
-  const role = (profile?.role ?? 'lead_gen') as UserRole
-  const canEdit = role === 'admin' || role === 'lead_gen'
+  const role = (profile?.role ?? 'member') as UserRole
+  const canEdit = role === 'owner' || role === 'admin' || role === 'member'
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">

@@ -26,8 +26,8 @@ export default async function ActiveSupplierDetailPage({
 
   if (!supplier || supplier.stage !== 'deal_established') notFound()
 
-  const role = profile?.role ?? 'lead_gen'
-  const canEdit = role === 'admin' || role === 'closer'
+  const role = profile?.role ?? 'member'
+  const canEdit = role === 'owner' || role === 'admin'
 
   return (
     <ActiveSupplierDetailClient

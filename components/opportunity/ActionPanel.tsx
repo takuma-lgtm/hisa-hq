@@ -69,8 +69,8 @@ export default function ActionPanel({
     setLoading(false)
   }
 
-  const isLeadGen = role === 'lead_gen'
-  const isCloserOrAdmin = role === 'closer' || role === 'admin'
+  const isLeadGen = role === 'member'
+  const isCloserOrAdmin = role === 'owner' || role === 'admin'
   const isTerminal = stage === 'disqualified' || stage === 'lost'
 
   return (

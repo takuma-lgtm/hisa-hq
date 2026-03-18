@@ -50,7 +50,7 @@ export default async function OpportunitiesPage() {
       .order('customer_facing_product_name'),
   ])
 
-  const role = (profile?.role ?? 'lead_gen') as UserRole
+  const role = (profile?.role ?? 'member') as UserRole
   const activeCount = (opportunities ?? []).filter(
     (o) => o.stage !== 'disqualified' && o.stage !== 'lost',
   ).length

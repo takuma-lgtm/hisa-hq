@@ -224,7 +224,7 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
     )
   }
 
-  const colCount = 7
+  const colCount = 6
 
   function renderSortTh(label: string, k: SortKey, className?: string) {
     const isActive = sortKey === k
@@ -317,19 +317,17 @@ export default function StockLevelsTable({ levels, exchangeRate }: Props) {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
           <colgroup>
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
             <col style={{ width: '18%' }} />
             <col style={{ width: '13%' }} />
+            <col style={{ width: '14%' }} />
             <col style={{ width: '9%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '15%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '8%' }} />
           </colgroup>
           <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
             <tr>
               {renderSortTh("Product", "product_id")}
-              <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Type</th>
               {renderSortTh("JP", "jp_stock", "text-center")}
               {renderSortTh("US", "us_stock", "text-center")}
               {renderSortTh("In Transit (JP→US)", "in_transit", "text-center")}
@@ -398,7 +396,7 @@ function ProductGroupRows({
     <>
       {/* Product parent row */}
       <tr
-        className={`border-b border-slate-200 hover:bg-slate-50 cursor-pointer ${isProductExpanded ? 'bg-green-50/30' : ''}`}
+        className={`border-b border-slate-200 cursor-pointer ${isProductExpanded ? 'bg-[#F0EFEA] hover:bg-[#EBEAE4]' : 'bg-[#FAFAF8] hover:bg-[#F0EFEA]'}`}
         onClick={onToggleProduct}
       >
         <td className="pl-3 pr-2 py-3">
@@ -415,13 +413,6 @@ function ProductGroupRows({
                 <span className="block text-xs text-slate-400 mt-0.5">{group.product_name}</span>
               )}
             </div>
-          </div>
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex gap-1 flex-wrap">
-            {group.sku_types.map(t => (
-              <span key={t}>{typeBadge(t)}</span>
-            ))}
           </div>
         </td>
         <td className="px-4 py-3 text-center tabular-nums whitespace-nowrap font-medium text-slate-700">{group.jp_stock}</td>
@@ -495,9 +486,9 @@ function SkuChildRows({
             </span>
             <span className="font-medium">{label}</span>
             <span className="text-xs text-slate-400">{sku.sku_name}</span>
+            {typeBadge(sku.sku_type)}
           </span>
         </td>
-        <td className="px-4 py-2">{typeBadge(sku.sku_type)}</td>
         <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.jp_stock}</td>
         <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-600">{sku.us_stock}</td>
         <td className="px-4 py-2 text-center tabular-nums whitespace-nowrap text-slate-400">{sku.in_transit || '—'}</td>

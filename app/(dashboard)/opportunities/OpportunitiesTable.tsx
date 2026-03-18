@@ -131,7 +131,7 @@ export default function OpportunitiesTable({ opportunities, profiles, products, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const canEdit = userRole === 'admin' || userRole === 'closer'
+  const canEdit = userRole === 'owner' || userRole === 'admin'
 
   // Stage counts for pills
   const stageCounts = useMemo(() => {

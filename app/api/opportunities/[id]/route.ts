@@ -17,7 +17,7 @@ export async function PATCH(
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['closer', 'admin'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -82,8 +82,8 @@ export default function KanbanBoard({ initialOpportunities, userRole }: KanbanBo
     const opp = opportunities.find((o) => o.opportunity_id === oppId)
     if (!opp || opp.stage === newStage) return
 
-    // Role gate: lead_gen can only move within LEAD_GEN_EDITABLE_STAGES
-    if (userRole === 'lead_gen' && !LEAD_GEN_EDITABLE_STAGES.includes(newStage)) {
+    // Role gate: member can only move within LEAD_GEN_EDITABLE_STAGES
+    if (userRole === 'member' && !LEAD_GEN_EDITABLE_STAGES.includes(newStage)) {
       setError('Your role cannot move opportunities past the handoff stage.')
       return
     }

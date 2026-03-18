@@ -47,6 +47,9 @@ public/hisa-logo-original.png
 # build artifacts
 repomix-output.xml
 
+# data exports
+*.csv
+
 # dev screenshots
 screenshot-*.png
 favicon-check*.png

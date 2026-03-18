@@ -42,7 +42,11 @@ export default async function SettingsPage() {
     teamMembers = (profiles ?? []).map((p) => ({
       ...p,
       email: emailMap[p.id] ?? '',
-    }))
+    })).sort((a, b) => {
+      if (a.role === 'owner') return -1
+      if (b.role === 'owner') return 1
+      return 0
+    })
   }
 
   return (

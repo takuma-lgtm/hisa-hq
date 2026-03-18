@@ -17,7 +17,7 @@ export default async function RecurringCustomerPage({
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
 
-  const canEdit = profile?.role === 'admin' || profile?.role === 'closer'
+  const canEdit = profile?.role === 'owner' || profile?.role === 'admin'
   const service = createServiceClient()
 
   // Fetch customer, orders, invoices, settings, and products in parallel

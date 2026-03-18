@@ -67,8 +67,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
   owner: 'Owner',
   admin: 'Admin',
   member: 'Member',
-  closer: 'Closer',
-  lead_gen: 'Lead Gen',
+  closer: 'Member',
+  lead_gen: 'Member',
 }
 
 const COLLAPSED_WIDTH = 60

@@ -75,9 +75,15 @@ export default function ProductSidePanel({
       <div className="px-4 py-3 border-b border-slate-200 shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0 mr-2">
-            <h2 className="text-sm font-semibold text-slate-900 truncate">
-              {localProduct.customer_facing_product_name}
-            </h2>
+            <InlineField
+              label=""
+              value={localProduct.customer_facing_product_name}
+              field="customer_facing_product_name"
+              productId={localProduct.product_id}
+              isAdmin={isAdmin}
+              onSaved={handleFieldSaved}
+              valueClassName="text-sm font-semibold text-slate-900"
+            />
             <p className="text-[10px] text-slate-400 mt-0.5">{localProduct.product_id}</p>
             {localProduct.tasting_headline && (
               <p className="text-xs italic text-slate-500 mt-0.5">{localProduct.tasting_headline}</p>
@@ -161,6 +167,7 @@ function InlineField({
   isAdmin,
   type = 'text',
   onSaved,
+  valueClassName,
 }: {
   label: string
   value: string | null
@@ -169,6 +176,7 @@ function InlineField({
   isAdmin: boolean
   type?: 'text' | 'textarea'
   onSaved: (updated: Product) => void
+  valueClassName?: string
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value ?? '')
@@ -202,11 +210,11 @@ function InlineField({
   if (!isAdmin) {
     return (
       <div className="py-1">
-        <span className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</span>
+        {label && <span className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</span>}
         {type === 'textarea' ? (
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{value || '—'}</p>
+          <p className={valueClassName ?? 'text-sm text-slate-700 whitespace-pre-wrap'}>{value || '—'}</p>
         ) : (
-          <p className="text-sm text-slate-700">{value || '—'}</p>
+          <p className={valueClassName ?? 'text-sm text-slate-700'}>{value || '—'}</p>
         )}
       </div>
     )
@@ -215,13 +223,13 @@ function InlineField({
   if (!editing) {
     return (
       <div className="py-1 cursor-pointer group" onClick={() => setEditing(true)}>
-        <span className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</span>
+        {label && <span className="text-[10px] text-slate-400 uppercase tracking-wide">{label}</span>}
         {type === 'textarea' ? (
-          <p className="text-sm text-slate-700 whitespace-pre-wrap group-hover:bg-green-50/50 rounded px-1 -mx-1 transition-colors">
+          <p className={`${valueClassName ?? 'text-sm text-slate-700'} whitespace-pre-wrap group-hover:bg-green-50/50 rounded px-1 -mx-1 transition-colors`}>
             {value || <span className="text-slate-300 italic">Click to add...</span>}
           </p>
         ) : (
-          <p className="text-sm text-slate-700 group-hover:bg-green-50/50 rounded px-1 -mx-1 transition-colors">
+          <p className={`${valueClassName ?? 'text-sm text-slate-700'} group-hover:bg-green-50/50 rounded px-1 -mx-1 transition-colors`}>
             {value || <span className="text-slate-300 italic">Click to add...</span>}
           </p>
         )}
@@ -375,6 +383,13 @@ function ProfileTab({
       </div>
       <InlineField label="Best For" value={product.best_for} field="best_for" productId={product.product_id} isAdmin={isAdmin} onSaved={onSaved} />
 
+      <div className="border-t border-slate-100 my-2" />
+
+      <InlineField label="Internal Name (JPN)" value={product.name_internal_jpn} field="name_internal_jpn" productId={product.product_id} isAdmin={isAdmin} onSaved={onSaved} />
+      {!product.is_competitor && (
+        <ActiveToggle product={product} isAdmin={isAdmin} onSaved={onSaved} />
+      )}
+
       {product.photo_folder_url && (
         <a
           href={product.photo_folder_url}
@@ -437,6 +452,52 @@ function ContactCheckbox({
   )
 }
 
+function ActiveToggle({
+  product,
+  isAdmin,
+  onSaved,
+}: {
+  product: Product
+  isAdmin: boolean
+  onSaved: (updated: Product) => void
+}) {
+  const [active, setActive] = useState(product.active)
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync from prop
+  useEffect(() => setActive(product.active), [product.active])
+
+  async function toggle(val: boolean) {
+    setActive(val)
+    const res = await fetch(`/api/products/${encodeURIComponent(product.product_id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: val }),
+    })
+    if (res.ok) onSaved(await res.json())
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="py-1">
+        <span className="text-[10px] text-slate-400 uppercase tracking-wide">Status</span>
+        <p className="text-sm text-slate-700">{active ? 'Active' : 'Inactive'}</p>
+      </div>
+    )
+  }
+
+  return (
+    <label className="flex items-center gap-2 py-1 text-xs text-slate-600 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={active}
+        onChange={(e) => toggle(e.target.checked)}
+        className="rounded border-slate-300"
+      />
+      Active
+    </label>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Pricing Tab
 // ---------------------------------------------------------------------------
@@ -491,9 +552,12 @@ function PricingTab({
       <div>
         <h3 className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Selling Prices</h3>
         <div className="space-y-0.5">
-          <InlineNumericField label="USD" value={product.selling_price_usd} field="selling_price_usd" productId={product.product_id} isAdmin={isAdmin} format={(v) => `${fmtUsd(v)} (min: ${fmtUsd(product.min_price_usd)})`} onSaved={onSaved} />
-          <InlineNumericField label="GBP" value={product.selling_price_gbp} field="selling_price_gbp" productId={product.product_id} isAdmin={isAdmin} format={(v) => `${fmtGbp(v)} (min: ${fmtGbp(product.min_price_gbp)})`} onSaved={onSaved} />
-          <InlineNumericField label="EUR" value={product.selling_price_eur} field="selling_price_eur" productId={product.product_id} isAdmin={isAdmin} format={(v) => `${fmtEur(v)} (min: ${fmtEur(product.min_price_eur)})`} onSaved={onSaved} />
+          <InlineNumericField label="USD price" value={product.selling_price_usd} field="selling_price_usd" productId={product.product_id} isAdmin={isAdmin} format={fmtUsd} onSaved={onSaved} />
+          <InlineNumericField label="USD min" value={product.min_price_usd} field="min_price_usd" productId={product.product_id} isAdmin={isAdmin} format={fmtUsd} onSaved={onSaved} />
+          <InlineNumericField label="GBP price" value={product.selling_price_gbp} field="selling_price_gbp" productId={product.product_id} isAdmin={isAdmin} format={fmtGbp} onSaved={onSaved} />
+          <InlineNumericField label="GBP min" value={product.min_price_gbp} field="min_price_gbp" productId={product.product_id} isAdmin={isAdmin} format={fmtGbp} onSaved={onSaved} />
+          <InlineNumericField label="EUR price" value={product.selling_price_eur} field="selling_price_eur" productId={product.product_id} isAdmin={isAdmin} format={fmtEur} onSaved={onSaved} />
+          <InlineNumericField label="EUR min" value={product.min_price_eur} field="min_price_eur" productId={product.product_id} isAdmin={isAdmin} format={fmtEur} onSaved={onSaved} />
         </div>
       </div>
 
@@ -515,9 +579,7 @@ function PricingTab({
         <p className="text-xs text-slate-500 mt-0.5">
           Gross Profit: {fmtUsd(product.gross_profit_per_kg_usd)}/kg
         </p>
-        <p className="text-xs text-slate-500">
-          Stock: {fmtStock(product.monthly_available_stock_kg)}
-        </p>
+        <InlineNumericField label="Stock/mo (kg)" value={product.monthly_available_stock_kg} field="monthly_available_stock_kg" productId={product.product_id} isAdmin={isAdmin} format={(v) => v != null && v > 0 ? `~${v}kg/month` : '—'} onSaved={onSaved} />
       </div>
 
       {/* Volume Tiers */}

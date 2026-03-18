@@ -15,14 +15,14 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Only lead_gen and admin can trigger a handoff
+  // Only member and admin can trigger a handoff
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['lead_gen', 'admin'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin', 'member'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -40,8 +40,8 @@ export async function POST(
     .eq('id', assignedTo)
     .single()
 
-  if (!closerProfile || !['closer', 'admin'].includes(closerProfile.role)) {
-    return NextResponse.json({ error: 'assigned_to must be a closer or admin user' }, { status: 400 })
+  if (!closerProfile || !['owner', 'admin'].includes(closerProfile.role)) {
+    return NextResponse.json({ error: 'assigned_to must be an owner or admin user' }, { status: 400 })
   }
 
   // Fetch opportunity + customer

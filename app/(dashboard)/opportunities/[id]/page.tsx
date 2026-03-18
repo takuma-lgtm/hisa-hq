@@ -73,7 +73,7 @@ export default async function OpportunityDetailPage({ params }: Props) {
       .order('created_at', { ascending: false }),
 
     // Fetch closers for handoff assignment
-    supabase.from('profiles').select('id, name, role').in('role', ['closer', 'admin']),
+    supabase.from('profiles').select('id, name, role').in('role', ['owner', 'admin']),
   ])
 
   if (!opportunity) notFound()

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import ProductsTable from './ProductsTable'
-import type { UserRole } from '@/types/database'
 import type { MarginThresholds } from '@/lib/margin-health'
 import { DEFAULT_MARGIN_THRESHOLDS } from '@/lib/margin-health'
 
@@ -26,8 +25,7 @@ export default async function ProductsPage() {
       .eq('category', 'margin_alerts'),
   ])
 
-  const role = (profile?.role ?? 'lead_gen') as UserRole
-  const isAdmin = role === 'admin'
+  const isAdmin = true // all authenticated users can edit products
 
   // Build margin thresholds from settings
   const thresholds: MarginThresholds = { ...DEFAULT_MARGIN_THRESHOLDS }

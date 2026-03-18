@@ -13,7 +13,7 @@ export async function PATCH(
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['admin', 'closer'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

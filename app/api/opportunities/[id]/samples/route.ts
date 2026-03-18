@@ -36,14 +36,14 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Only closer and admin can create sample batches
+  // Only owner and admin can create sample batches
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['closer', 'admin'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -230,7 +230,7 @@ export async function PATCH(
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['closer', 'admin'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

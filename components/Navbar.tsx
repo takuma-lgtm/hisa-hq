@@ -32,21 +32,21 @@ import {
 } from "@/components/ui/sheet"
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: Home, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/opportunities', label: 'Opportunities', icon: Target, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/recurring', label: 'Recurring', icon: Repeat, roles: ['admin', 'closer'] },
-  { href: '/products', label: 'Products', icon: Leaf, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'closer', 'lead_gen'] },
-  { href: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
+  { href: '/', label: 'Dashboard', icon: Home, roles: ['owner', 'admin', 'member'] },
+  { href: '/leads', label: 'Leads', icon: Users, roles: ['owner', 'admin', 'member'] },
+  { href: '/opportunities', label: 'Opportunities', icon: Target, roles: ['owner', 'admin', 'member'] },
+  { href: '/recurring', label: 'Recurring', icon: Repeat, roles: ['owner', 'admin'] },
+  { href: '/products', label: 'Products', icon: Leaf, roles: ['owner', 'admin', 'member'] },
+  { href: '/inventory', label: 'Inventory', icon: Boxes, roles: ['owner', 'admin', 'member'] },
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['owner', 'admin'] },
 ] as const
 
 const ROLE_LABELS: Record<UserRole, string> = {
   owner: 'Owner',
   admin: 'Admin',
   member: 'Member',
-  closer: 'Closer',
-  lead_gen: 'Lead Gen',
+  closer: 'Member',
+  lead_gen: 'Member',
 }
 
 interface NavbarProps {

@@ -51,7 +51,7 @@ export async function POST(
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['admin', 'lead_gen', 'closer'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin', 'member'].includes(profile.role)) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 

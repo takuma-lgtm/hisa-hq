@@ -233,14 +233,6 @@ export default function ActiveSupplierDetailClient({
         </div>
         <div className="flex items-center gap-6 ml-8">
           {supplier.prefecture && <span className="text-sm text-slate-500">{supplier.prefecture}</span>}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">品質</span>
-            {renderStars(qualityRating, canEdit ? (v) => { setQualityRating(v); saveField('quality_rating', v) } : undefined)}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">信頼性</span>
-            {renderStars(reliabilityRating, canEdit ? (v) => { setReliabilityRating(v); saveField('reliability_rating', v) } : undefined)}
-          </div>
         </div>
       </div>
 
@@ -265,7 +257,7 @@ export default function ActiveSupplierDetailClient({
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Summary stats */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-white border border-slate-200 rounded-lg p-4">
                 <p className="text-xs text-slate-400 mb-1">合計仕入額</p>
                 <p className="text-lg font-semibold text-slate-900">{totalSpend > 0 ? formatCurrency(totalSpend) : '—'}</p>
@@ -273,10 +265,6 @@ export default function ActiveSupplierDetailClient({
               <div className="bg-white border border-slate-200 rounded-lg p-4">
                 <p className="text-xs text-slate-400 mb-1">発注回数</p>
                 <p className="text-lg font-semibold text-slate-900">{orders.length}回</p>
-              </div>
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <p className="text-xs text-slate-400 mb-1">平均品質</p>
-                <p className="text-lg font-semibold">{renderStars(avgQuality ? Math.round(avgQuality) : null)}</p>
               </div>
               <div className="bg-white border border-slate-200 rounded-lg p-4">
                 <p className="text-xs text-slate-400 mb-1">取扱商品数</p>
@@ -445,9 +433,6 @@ export default function ActiveSupplierDetailClient({
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${PAYMENT_STATUS_COLORS[order.payment_status] ?? ''}`}>
                         {order.payment_status}
                       </span>
-                      {order.quality_rating && (
-                        <span className="text-amber-500 text-xs">{'★'.repeat(order.quality_rating)}</span>
-                      )}
                     </div>
                     {expandedPo === order.po_id && (
                       <div className="px-4 pb-3 border-t border-slate-100">

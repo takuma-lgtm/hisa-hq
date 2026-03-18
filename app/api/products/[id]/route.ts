@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { isAdmin } from '@/lib/auth'
-
 const ALLOWED_FIELDS = new Set([
   'supplier', 'supplier_product_name', 'customer_facing_product_name',
   'product_type', 'price_per_kg', 'landing_cost_per_kg_usd',
@@ -29,12 +27,6 @@ export async function PATCH(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('id', user.id).single()
-  if (!isAdmin(profile?.role)) {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-  }
 
   const body = await request.json()
   const updateData: Record<string, unknown> = {}

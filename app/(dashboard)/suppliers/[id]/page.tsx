@@ -24,8 +24,8 @@ export default async function SupplierDetailPage({
 
   if (!supplier) notFound()
 
-  const role = profile?.role ?? 'lead_gen'
-  const canEdit = role === 'admin' || role === 'closer'
+  const role = profile?.role ?? 'member'
+  const canEdit = role === 'owner' || role === 'admin'
 
   return (
     <SupplierDetailClient

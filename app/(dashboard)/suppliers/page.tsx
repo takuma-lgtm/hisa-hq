@@ -17,8 +17,8 @@ export default async function SuppliersPage() {
     service.from('supplier_communications').select('supplier_id'),
   ])
 
-  const role = profile?.role ?? 'lead_gen'
-  const canEdit = role === 'admin' || role === 'closer'
+  const role = profile?.role ?? 'member'
+  const canEdit = role === 'owner' || role === 'admin'
 
   // Aggregate comm counts
   const commCounts: Record<string, number> = {}

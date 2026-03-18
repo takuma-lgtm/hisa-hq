@@ -279,9 +279,8 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
                 <table className="w-full text-sm border-collapse zebra-table">
                   <thead className="sticky top-0 bg-white border-b border-slate-200 z-10">
                     <tr>
-                      <Th>Product</Th>
-                      <Th>Region</Th>
-                      <Th>Harvest</Th>
+                      <th className="px-3 py-2 text-xs font-medium text-slate-500 uppercase tracking-wide text-left w-[260px]">Product</th>
+                      <SortTh col="supplier" sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Supplier</SortTh>
                       <SortTh col="selling_price_usd" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Price ($/kg)</SortTh>
                       <SortTh col="gross_profit_margin" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Margin</SortTh>
                       <SortTh col="monthly_available_stock_kg" right sortKey={sortKey} sortDir={sortDir} onSort={handleSort}>Stock/mo</SortTh>
@@ -307,8 +306,7 @@ export default function ProductsTable({ products, isAdmin, marginThresholds }: P
                             <div className="text-[10px] text-slate-400">{p.product_id}</div>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-slate-600 text-xs">{p.production_region ?? '—'}</td>
-                        <td className="px-3 py-2 text-slate-600 text-xs">{p.harvest_season ?? p.harvest ?? '—'}</td>
+                        <td className="px-3 py-2 text-slate-600 text-xs">{p.supplier ?? '—'}</td>
                         <Td right>{fmt(p.selling_price_usd ?? p.default_selling_price_usd, 'usd')}</Td>
                         <td className="px-3 py-2 text-right">{marginBadge(p)}</td>
                         <Td right>{fmt(p.monthly_available_stock_kg, 'stock')}</Td>

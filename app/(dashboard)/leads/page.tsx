@@ -21,9 +21,9 @@ export default async function LeadsPage() {
     supabase.from('profiles').select('id, name').order('name'),
   ])
 
-  const role = (profile?.role ?? 'lead_gen') as UserRole
-  const canImport = role === 'admin' || role === 'lead_gen'
-  const canEdit = role === 'admin' || role === 'lead_gen'
+  const role = (profile?.role ?? 'member') as UserRole
+  const canImport = role === 'owner' || role === 'admin' || role === 'member'
+  const canEdit = role === 'owner' || role === 'admin' || role === 'member'
 
   // Fetch outreach stats from instagram_logs
   const customerIds = (leads ?? []).map((l) => l.customer_id)

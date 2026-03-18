@@ -45,7 +45,7 @@ export default function OpportunityDetailClient({
   const [sampleBatches, setSampleBatches] = useState(initialBatches)
   const [quotations, setQuotations] = useState(initialQuotations)
 
-  const isCloserOrAdmin = ['closer', 'admin'].includes(userProfile.role)
+  const isCloserOrAdmin = ['owner', 'admin'].includes(userProfile.role)
   const isPostHandoff = [
     'sample_approved', 'samples_shipped', 'samples_delivered', 'quote_sent',
     'collect_feedback', 'deal_won', 'payment_received', 'first_order', 'recurring_customer',

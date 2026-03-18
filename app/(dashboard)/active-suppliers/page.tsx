@@ -17,8 +17,8 @@ export default async function ActiveSuppliersPage() {
     service.from('supplier_communications').select('supplier_id, created_at').order('created_at', { ascending: false }),
   ])
 
-  const role = profile?.role ?? 'lead_gen'
-  if (role === 'lead_gen') redirect('/')
+  const role = profile?.role ?? 'member'
+  if (role === 'member') redirect('/')
 
   // Filter orders and products to only active suppliers
   const supplierIds = new Set((suppliers ?? []).map((s) => s.supplier_id))

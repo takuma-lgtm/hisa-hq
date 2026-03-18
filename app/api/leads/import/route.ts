@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['admin', 'lead_gen'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin', 'member'].includes(profile.role)) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
   }
 

@@ -42,9 +42,9 @@ export default async function InventoryPage() {
       .single(),
   ])
 
-  const role = (profile?.role ?? 'lead_gen') as UserRole
-  const isAdmin = role === 'admin'
-  const canWrite = role === 'admin' || role === 'closer'
+  const role = (profile?.role ?? 'member') as UserRole
+  const isAdmin = role === 'owner' || role === 'admin'
+  const canWrite = role === 'owner' || role === 'admin'
   const exchangeRate = parseFloat(exchangeRateSetting?.value ?? '150')
 
   return (

@@ -29,7 +29,7 @@ export default function HandoffModal({ open, onOpenChange, onConfirm }: HandoffM
     supabase
       .from('profiles')
       .select('id, name, role')
-      .in('role', ['closer', 'admin'])
+      .in('role', ['owner', 'admin'])
       .then(({ data }) => {
         if (data) setClosers(data)
         if (data?.length === 1) setSelected(data[0].id)
