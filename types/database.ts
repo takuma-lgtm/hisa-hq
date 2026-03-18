@@ -222,7 +222,7 @@ export interface SampleBatchWithItems extends SampleBatch {
 
 // Inventory joined types
 export type InventoryLevelWithDetails = InventoryLevel & {
-  sku: Pick<Sku, 'sku_name' | 'sku_type' | 'unit_cost_jpy' | 'product_id' | 'name_external_eng'>
+  sku: Pick<Sku, 'sku_name' | 'sku_type' | 'unit_cost_jpy' | 'product_id' | 'name_external_eng' | 'unit_weight_kg'>
   warehouse: Pick<WarehouseLocation, 'name' | 'short_code'>
 }
 
@@ -363,6 +363,9 @@ export interface Database {
           why_switch: string | null
           definition_of_good_matcha: string | null
           market_intel_notes: string | null
+          matcha_interest_level: string | null
+          customer_bucket: string | null
+          disqualification_reason: string | null
           status: Database['public']['Enums']['customer_status_enum']
           lead_stage: Database['public']['Enums']['lead_stage_enum']
           instagram_url: string | null
@@ -422,6 +425,9 @@ export interface Database {
           why_switch?: string | null
           definition_of_good_matcha?: string | null
           market_intel_notes?: string | null
+          matcha_interest_level?: string | null
+          customer_bucket?: string | null
+          disqualification_reason?: string | null
           status?: Database['public']['Enums']['customer_status_enum']
           lead_stage?: Database['public']['Enums']['lead_stage_enum']
           instagram_url?: string | null
@@ -481,6 +487,9 @@ export interface Database {
           why_switch?: string | null
           definition_of_good_matcha?: string | null
           market_intel_notes?: string | null
+          matcha_interest_level?: string | null
+          customer_bucket?: string | null
+          disqualification_reason?: string | null
           status?: Database['public']['Enums']['customer_status_enum']
           lead_stage?: Database['public']['Enums']['lead_stage_enum']
           instagram_url?: string | null
@@ -797,6 +806,8 @@ export interface Database {
           should_contact_producer: boolean
           // Migration 017 addition
           primary_supplier_id: string | null
+          // Migration 028 addition
+          display_tier: 'premium' | 'versatile' | 'budget' | null
         }
         Insert: {
           product_id: string
@@ -847,6 +858,7 @@ export interface Database {
           introduced_by?: string | null
           should_contact_producer?: boolean
           primary_supplier_id?: string | null
+          display_tier?: 'premium' | 'versatile' | 'budget' | null
         }
         Update: {
           product_id?: string
@@ -897,6 +909,7 @@ export interface Database {
           introduced_by?: string | null
           should_contact_producer?: boolean
           primary_supplier_id?: string | null
+          display_tier?: 'premium' | 'versatile' | 'budget' | null
         }
         Relationships: []
       }
