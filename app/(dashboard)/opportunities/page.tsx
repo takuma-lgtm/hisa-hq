@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { UserRole, OpportunityStage, PaymentStatus } from '@/types/database'
 import { OPPORTUNITY_TABLE_STAGES } from '@/lib/constants'
-import OpportunitiesTable from './OpportunitiesTable'
+import OpportunitiesActionQueue from './OpportunitiesActionQueue'
 
 export default async function OpportunitiesPage() {
   const supabase = await createClient()
@@ -51,9 +51,6 @@ export default async function OpportunitiesPage() {
   ])
 
   const role = (profile?.role ?? 'member') as UserRole
-  const activeCount = (opportunities ?? []).filter(
-    (o) => o.stage !== 'disqualified' && o.stage !== 'lost',
-  ).length
 
   // Fetch latest invoice payment status per opportunity
   const service = createServiceClient()
@@ -63,11 +60,40 @@ export default async function OpportunitiesPage() {
     .order('created_at', { ascending: false })
   const invoiceStatusMap: Record<string, PaymentStatus> = {}
   for (const row of invoiceRows ?? []) {
-    // First row per opportunity_id wins (latest due to ordering)
     if (row.opportunity_id && !invoiceStatusMap[row.opportunity_id]) {
       invoiceStatusMap[row.opportunity_id] = row.payment_status
     }
   }
+
+  // Fetch batch data (tracking number + delivery date) for in-transit and post-delivery opps
+  const relevantOppIds = (opportunities ?? [])
+    .filter((o) =>
+      ['samples_shipped', 'samples_delivered', 'quote_sent', 'collect_feedback'].includes(o.stage),
+    )
+    .map((o) => o.opportunity_id)
+
+  const { data: batchRows } = relevantOppIds.length > 0
+    ? await service
+        .from('sample_batches')
+        .select('opportunity_id, tracking_number, carrier, delivered_at')
+        .in('opportunity_id', relevantOppIds)
+        .order('created_at', { ascending: false })
+    : { data: [] }
+
+  const batchMap: Record<string, { tracking_number: string | null; carrier: string | null; delivered_at: string | null }> = {}
+  for (const row of batchRows ?? []) {
+    if (!batchMap[row.opportunity_id]) {
+      batchMap[row.opportunity_id] = {
+        tracking_number: row.tracking_number,
+        carrier: row.carrier,
+        delivered_at: row.delivered_at,
+      }
+    }
+  }
+
+  const activeCount = (opportunities ?? []).filter(
+    (o) => o.stage !== 'disqualified' && o.stage !== 'lost',
+  ).length
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -86,12 +112,13 @@ export default async function OpportunitiesPage() {
         </div>
       ) : (
         <Suspense>
-          <OpportunitiesTable
+          <OpportunitiesActionQueue
             opportunities={(opportunities ?? []) as never}
             profiles={profiles ?? []}
             products={(products ?? []) as never}
             userRole={role}
             invoiceStatuses={invoiceStatusMap}
+            batchMap={batchMap}
           />
         </Suspense>
       )}

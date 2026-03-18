@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { sendQuoteEmail } from '@/lib/email'
 
 export async function GET(
   _req: NextRequest,
@@ -38,7 +39,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { sent_via, notes, default_currency, items } = body
+  const { sent_via, notes, default_currency, items, send_email } = body
 
   if (!items?.length) {
     return NextResponse.json({ error: 'At least one item is required' }, { status: 400 })
@@ -94,5 +95,55 @@ export async function POST(
     .single()
 
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 })
+
+  // If send_email is requested, send quote email from sales@ and advance stage
+  if (send_email && full) {
+    const service = createServiceClient()
+
+    // Fetch customer contact info
+    const { data: opp } = await service
+      .from('opportunities')
+      .select('customer:customers(cafe_name, email, contact_person)')
+      .eq('opportunity_id', opportunityId)
+      .single()
+
+    type CustomerInfo = { cafe_name: string; email: string | null; contact_person: string | null }
+    const customer = (opp?.customer as CustomerInfo | null) ?? null
+
+    if (customer?.email) {
+      try {
+        type ItemWithProduct = {
+          price_per_kg: number
+          currency: string
+          notes: string | null
+          product: { customer_facing_product_name: string } | null
+        }
+        const proposalItems = (full.items as unknown as ItemWithProduct[]).map((item) => ({
+          productName: item.product?.customer_facing_product_name ?? 'Unknown Product',
+          pricePerKg: item.price_per_kg,
+          currency: item.currency,
+          notes: item.notes,
+        }))
+
+        await sendQuoteEmail({
+          to: customer.email,
+          cafeName: customer.cafe_name,
+          contactPerson: customer.contact_person,
+          proposalItems,
+          notes: notes ?? null,
+        })
+      } catch (emailErr) {
+        // Log but don't fail the response — proposal is already saved
+        console.error('Quote email failed:', emailErr)
+      }
+    }
+
+    // Advance opportunity stage to quote_sent
+    await service
+      .from('opportunities')
+      .update({ stage: 'quote_sent' as never, updated_at: new Date().toISOString() })
+      .eq('opportunity_id', opportunityId)
+  }
+
   return NextResponse.json({ proposal: full }, { status: 201 })
 }

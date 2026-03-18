@@ -235,7 +235,7 @@ export async function PATCH(
   }
 
   const body = await request.json()
-  const { batch_id, tracking_number, carrier } = body
+  const { batch_id, tracking_number, carrier, feedback_notes } = body
 
   if (!batch_id) {
     return NextResponse.json({ error: 'batch_id is required' }, { status: 400 })
@@ -258,6 +258,7 @@ export async function PATCH(
   const updates: Record<string, unknown> = {}
   if (tracking_number !== undefined) updates.tracking_number = tracking_number
   if (carrier !== undefined) updates.carrier = carrier
+  if (feedback_notes !== undefined) updates.feedback_notes = feedback_notes
 
   const { data: updated, error } = await service
     .from('sample_batches')

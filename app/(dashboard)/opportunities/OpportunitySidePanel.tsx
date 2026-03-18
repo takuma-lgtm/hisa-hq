@@ -79,6 +79,7 @@ interface SampleBatch {
   estimated_delivery: string | null
   last_tracked_at: string | null
   auto_track_enabled: boolean
+  feedback_notes: string | null
 }
 
 interface DraftMessage {
@@ -359,7 +360,24 @@ export default function OpportunitySidePanel({ opportunity: opp, userRole, canEd
               />
             )}
 
-            {(effectiveStage === 'quote_sent' || effectiveStage === 'deal_won' || effectiveStage === 'payment_received') && (
+            {effectiveStage === 'collect_feedback' && (
+              <CollectFeedbackSection
+                oppId={oppId}
+                batch={batches[0] ?? null}
+                proposals={proposals}
+                canEdit={canEdit}
+                stageUpdating={stageUpdating}
+                customerName={opp.customer.contact_person}
+                onFeedbackSaved={(batchId, notes) => {
+                  setBatches((prev) =>
+                    prev.map((b) => b.batch_id === batchId ? { ...b, feedback_notes: notes } : b),
+                  )
+                }}
+                onMarkWon={() => advanceStage('deal_won')}
+              />
+            )}
+
+            {(effectiveStage === 'quote_sent' || effectiveStage === 'collect_feedback' || effectiveStage === 'deal_won' || effectiveStage === 'payment_received') && (
               <PaymentSection
                 oppId={oppId}
                 customer={opp.customer}
@@ -1042,25 +1060,23 @@ function DeliveredSection({
 }) {
   const batch = batches[0]
   const [savedProposal, setSavedProposal] = useState<Proposal | null>(null)
+  const [feedbackNotes, setFeedbackNotes] = useState(batch?.feedback_notes ?? '')
+  const [savingNotes, setSavingNotes] = useState(false)
+
+  async function saveFeedbackNotes() {
+    if (!batch || feedbackNotes === (batch.feedback_notes ?? '')) return
+    setSavingNotes(true)
+    await fetch(`/api/opportunities/${oppId}/samples`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batch.batch_id, feedback_notes: feedbackNotes }),
+    })
+    setSavingNotes(false)
+  }
 
   return (
     <div className="space-y-4">
-      {/* Feedback */}
-      {batch && (
-        <div className="border border-slate-200 rounded-lg p-3 space-y-2">
-          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sample Feedback</h3>
-          {batch.items.map((item) => (
-            <FeedbackRow
-              key={item.item_id}
-              item={item}
-              canEdit={canEdit}
-              onUpdate={(fb) => onFeedbackUpdated(batch.batch_id, item.item_id, fb)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Quote builder */}
+      {/* Quote builder — shown first as primary action */}
       {!savedProposal ? (
         <QuoteBuilder
           oppId={oppId}
@@ -1073,6 +1089,7 @@ function DeliveredSection({
             setSavedProposal(p)
             onQuoteSaved(p)
           }}
+          onEmailSent={onAdvance}
         />
       ) : (
         <QuoteSummary
@@ -1085,6 +1102,34 @@ function DeliveredSection({
           stageUpdating={stageUpdating}
           onAdvance={onAdvance}
         />
+      )}
+
+      {/* Sample Feedback */}
+      {batch && (
+        <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sample Feedback</h3>
+          {batch.items.map((item) => (
+            <FeedbackRow
+              key={item.item_id}
+              item={item}
+              canEdit={canEdit}
+              onUpdate={(fb) => onFeedbackUpdated(batch.batch_id, item.item_id, fb)}
+            />
+          ))}
+          {canEdit && (
+            <div className="pt-1">
+              <textarea
+                value={feedbackNotes}
+                onChange={(e) => setFeedbackNotes(e.target.value)}
+                onBlur={saveFeedbackNotes}
+                placeholder="Overall feedback notes…"
+                rows={2}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 resize-none outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              {savingNotes && <p className="text-[10px] text-slate-400 mt-0.5">Saving…</p>}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -1133,7 +1178,7 @@ function FeedbackRow({ item, canEdit, onUpdate }: { item: SampleBatchItem; canEd
 // ---------------------------------------------------------------------------
 
 function QuoteBuilder({
-  oppId, products, allTiers, settings, customerName, canEdit, onSaved,
+  oppId, products, allTiers, settings, customerName, canEdit, onSaved, onEmailSent,
 }: {
   oppId: string
   products: Product[]
@@ -1142,13 +1187,14 @@ function QuoteBuilder({
   customerName: string | null
   canEdit: boolean
   onSaved: (p: Proposal) => void
+  onEmailSent?: () => void
 }) {
   const [currency, setCurrency] = useState<QuoteCurrency>('USD')
   const [lines, setLines] = useState<{ product_id: string; volume_kg: number; override_price?: number }[]>([
     { product_id: '', volume_kg: 0 },
   ])
   const [quoteNotes, setQuoteNotes] = useState('')
-  const [sendVia, setSendVia] = useState('ig')
+  const [sendVia, setSendVia] = useState('email')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -1199,6 +1245,7 @@ function QuoteBuilder({
     setErr(null)
 
     try {
+      const isEmail = sendVia === 'email'
       const res = await fetch(`/api/opportunities/${oppId}/proposals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1206,6 +1253,7 @@ function QuoteBuilder({
           sent_via: sendVia,
           notes: quoteNotes || null,
           default_currency: currency,
+          send_email: isEmail,
           items: validLines.map((l) => ({
             product_id: l.product_id,
             price_per_kg: l.final_price_per_kg,
@@ -1216,6 +1264,7 @@ function QuoteBuilder({
       if (!res.ok) throw new Error((await res.json()).error)
       const data = await res.json()
       onSaved(data.proposal)
+      if (isEmail) onEmailSent?.()
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to save quote')
     } finally {
@@ -1318,9 +1367,11 @@ function QuoteBuilder({
       <button
         onClick={handleSave}
         disabled={submitting}
-        className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+        className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
       >
-        {submitting ? 'Saving…' : 'Save Quote'}
+        {submitting
+          ? (sendVia === 'email' ? 'Sending Email…' : 'Saving…')
+          : (sendVia === 'email' ? 'Send Quote via Email' : 'Save Quote')}
       </button>
     </div>
   )
@@ -1718,6 +1769,178 @@ function CallLogSection({
             {submitting ? 'Saving…' : 'Save Call'}
           </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Recent Activity
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Collect Feedback
+// ---------------------------------------------------------------------------
+
+function CollectFeedbackSection({
+  oppId, batch, proposals, canEdit, stageUpdating, customerName, onFeedbackSaved, onMarkWon,
+}: {
+  oppId: string
+  batch: SampleBatch | null
+  proposals: Proposal[]
+  canEdit: boolean
+  stageUpdating: boolean
+  customerName: string | null
+  onFeedbackSaved: (batchId: string, notes: string) => void
+  onMarkWon: () => void
+}) {
+  const latest = proposals[0] ?? null
+  const [batchItems, setBatchItems] = useState<SampleBatchItem[]>(batch?.items ?? [])
+  const [feedbackNotes, setFeedbackNotes] = useState(batch?.feedback_notes ?? '')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [showFollowUp, setShowFollowUp] = useState(false)
+  const [followUpText, setFollowUpText] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  // Pre-fill follow-up message when opened
+  function openFollowUp() {
+    const greeting = customerName ? `Hi ${customerName}` : 'Hi there'
+    setFollowUpText(
+      `${greeting}! Just checking in — have you had a chance to try the samples? Happy to answer any questions about the products or pricing.`,
+    )
+    setShowFollowUp(true)
+  }
+
+  async function saveFeedbackNotes() {
+    if (!batch || feedbackNotes === (batch.feedback_notes ?? '')) return
+    setSavingNotes(true)
+    await fetch(`/api/opportunities/${oppId}/samples`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batch.batch_id, feedback_notes: feedbackNotes }),
+    })
+    setSavingNotes(false)
+    onFeedbackSaved(batch.batch_id, feedbackNotes)
+  }
+
+  function copyFollowUp() {
+    navigator.clipboard.writeText(followUpText)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  // Urgency: days since delivery
+  const deliveredAt = batch?.delivered_at ?? null
+  const daysSince = deliveredAt
+    ? Math.floor((Date.now() - new Date(deliveredAt).getTime()) / 86_400_000)
+    : null
+  const urgencyClass =
+    daysSince === null ? 'text-slate-400'
+    : daysSince <= 5 ? 'text-green-600'
+    : daysSince <= 10 ? 'text-amber-600'
+    : 'text-red-600 font-semibold'
+
+  const hasAnyFeedback = batchItems.some((i) => i.feedback && i.feedback !== 'pending')
+  const canMarkWon = feedbackNotes.trim().length > 0 || hasAnyFeedback
+
+  return (
+    <div className="space-y-3">
+      {/* Urgency badge */}
+      {daysSince !== null && (
+        <p className={`text-xs ${urgencyClass}`}>
+          {daysSince === 0 ? 'Delivered today' : `${daysSince}d since delivery`}
+        </p>
+      )}
+
+      {/* Latest quote summary */}
+      {latest && (
+        <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Quote Sent</h3>
+          <div className="text-xs space-y-1">
+            {latest.items.map((item) => (
+              <div key={item.item_id} className="flex justify-between">
+                <span>{item.product?.customer_facing_product_name ?? item.product_id}</span>
+                <span className="font-medium">{latest.default_currency === 'GBP' ? '£' : latest.default_currency === 'EUR' ? '€' : '$'}{item.price_per_kg}/kg</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Per-item feedback */}
+      {batchItems.length > 0 && (
+        <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sample Feedback</h3>
+          {batchItems.map((item) => (
+            <FeedbackRow
+              key={item.item_id}
+              item={item}
+              canEdit={canEdit}
+              onUpdate={(fb) => setBatchItems((prev) => prev.map((i) => i.item_id === item.item_id ? { ...i, feedback: fb } : i))}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Feedback notes */}
+      <div className="space-y-1">
+        <label className="text-[10px] text-slate-500 uppercase tracking-wider">Notes</label>
+        <textarea
+          value={feedbackNotes}
+          onChange={(e) => setFeedbackNotes(e.target.value)}
+          onBlur={saveFeedbackNotes}
+          disabled={!canEdit}
+          placeholder="Feedback notes…"
+          rows={3}
+          className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 resize-none outline-none focus:ring-2 focus:ring-green-500 disabled:bg-slate-50"
+        />
+        {savingNotes && <p className="text-[10px] text-slate-400">Saving…</p>}
+      </div>
+
+      {/* Follow Up */}
+      {!showFollowUp ? (
+        <button
+          onClick={openFollowUp}
+          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium py-2 rounded-lg transition-colors"
+        >
+          Follow Up
+        </button>
+      ) : (
+        <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Follow-up message</h3>
+          <textarea
+            value={followUpText}
+            onChange={(e) => setFollowUpText(e.target.value)}
+            rows={4}
+            className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 resize-none outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={copyFollowUp}
+              className="flex items-center gap-1 text-xs text-slate-700 hover:underline"
+            >
+              {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy</>}
+            </button>
+            <button
+              onClick={() => setShowFollowUp(false)}
+              className="text-xs text-slate-400 hover:underline ml-auto"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mark Deal Won */}
+      {canEdit && (
+        <button
+          onClick={onMarkWon}
+          disabled={stageUpdating || !canMarkWon}
+          title={canMarkWon ? undefined : 'Add feedback notes or item feedback to enable'}
+          className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium py-2 rounded-lg transition-colors"
+        >
+          {stageUpdating ? 'Updating…' : 'Mark Deal Won'}
+        </button>
       )}
     </div>
   )
